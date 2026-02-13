@@ -95,9 +95,12 @@
     .comment-thread.has-replies-open .thread-stem { display: block; }
     /* Also show stem when collapsed (to connect "Show X replies" to avatar) */
     .comment-thread.has-replies .thread-stem { display: block; }
-    /* Hover on stem OR collapse line highlights both via parent class */
+    /* Hover on stem OR collapse line highlights the whole tree */
     .comment-thread.thread-hover .thread-stem::after,
     .comment-thread.thread-hover .replies-collapse-line::after { background: #888; }
+    .comment-thread.thread-hover .replies-toggle-top::after,
+    .comment-thread.thread-hover .reply-wrapper::after,
+    .comment-thread.thread-hover .replies-toggle-bottom::after { border-color: #888; }
 
     /* Top "Show X replies" toggle — tree item with L-curve from the stem */
     .replies-toggle-top { position: relative; appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.9rem; font-weight: 600; cursor: pointer; padding: 8px 12px 8px 22px; display: flex; align-items: center; gap: 6px; transition: background 0.15s; margin-top: 2px; margin-left: 18px; border-radius: 20px; }
@@ -130,6 +133,9 @@
     /* Hover on sub-stem OR sub-collapse line highlights both */
     .reply-wrapper.subreply-hover .subreply-stem::after,
     .reply-wrapper.subreply-hover .subreplies-collapse-line::after { background: #888; }
+    .reply-wrapper.subreply-hover .subreply-toggle::after,
+    .reply-wrapper.subreply-hover .subreply-toggle-bottom::after,
+    .reply-wrapper.subreply-hover .subreply-item::after { border-color: #888; }
 
     /* Bottom "Hide replies" toggle — last item in the tree, gets its own L-curve */
     .replies-toggle-bottom { position: relative; padding-left: 22px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.9rem; font-weight: 600; cursor: pointer; padding-top: 4px; padding-bottom: 8px; display: flex; align-items: center; border-radius: 20px; transition: background 0.15s; }
@@ -543,7 +549,7 @@
               // When expanded, stem reaches to the replies container; when collapsed, to the top toggle
               const target = repliesContainer.classList.contains('show') ? repliesContainer : topToggle;
               const targetRect = target.getBoundingClientRect();
-              const stemHeight = targetRect.top - threadRect.top - 48;
+              const stemHeight = targetRect.top - threadRect.top - 48 + 4;
               threadStem.style.height = Math.max(0, stemHeight) + 'px';
             });
           };
@@ -707,7 +713,7 @@
               // When expanded, stem reaches to sub-container; when collapsed, to the top toggle
               const target = subContainer.classList.contains('show') ? subContainer : subToggleTop;
               const targetRect = target.getBoundingClientRect();
-              const stemHeight = targetRect.top - wrapperRect.top - 32;
+              const stemHeight = targetRect.top - wrapperRect.top - 32 + 4;
               subStem.style.height = Math.max(0, stemHeight) + 'px';
             });
           };
@@ -826,7 +832,7 @@
               const threadRect = thread.getBoundingClientRect();
               const target = repliesContainer.classList.contains('show') ? repliesContainer : topToggle;
               const targetRect = target.getBoundingClientRect();
-              const stemHeight = targetRect.top - threadRect.top - 36;
+              const stemHeight = targetRect.top - threadRect.top - 36 + 4;
               threadStem.style.height = Math.max(0, stemHeight) + 'px';
             });
           };
