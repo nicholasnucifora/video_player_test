@@ -60,10 +60,14 @@
     /* ── Fullscreen ── */
     .fullscreen-wrapper { position: relative; background: #000; }
     .fullscreen-wrapper:fullscreen { overflow-y: auto; background: #0f0f0f; }
-    .fullscreen-wrapper:fullscreen .theatre-row, .fullscreen-wrapper:fullscreen media-player { height: 100vh; }
-    /* Side panel works in fullscreen — ensure it's visible and on top */
-    .fullscreen-wrapper:fullscreen .side-panel { z-index: 200; }
-    .fullscreen-wrapper:fullscreen .side-panel.open { display: flex; }
+    .fullscreen-wrapper:fullscreen .theatre-row { height: 100vh; position: relative; }
+    .fullscreen-wrapper:fullscreen media-player { height: 100vh; }
+    /* Side panel overlays from the right in fullscreen */
+    .fullscreen-wrapper:fullscreen .side-panel {
+      position: absolute; right: 0; top: 0; bottom: 0; z-index: 200;
+      border-left: 1px solid #333; box-shadow: -4px 0 24px rgba(0,0,0,0.5);
+    }
+    .fullscreen-wrapper:fullscreen .side-panel.open { display: flex; width: 540px; }
     .fs-content { display: none; padding: 1.5rem 2rem 3rem; max-width: 800px; margin: 0 auto; }
     .fullscreen-wrapper:fullscreen .fs-content { display: block; }
 
@@ -459,9 +463,28 @@
 
         player.addEventListener('media-fullscreen-request', (e) => { e.preventDefault(); e.stopPropagation(); document.fullscreenElement ? document.exitFullscreen() : wrapper.requestFullscreen(); });
 
+        // Also intercept the fullscreen button directly to ensure our wrapper goes fullscreen
+        const pollFS = setInterval(() => {
+          const fsBtn = player.querySelector('media-fullscreen-button') || player.querySelector('.vds-fullscreen-button');
+          if (!fsBtn || fsBtn._fsIntercepted) { if (fsBtn) clearInterval(pollFS); return; }
+          fsBtn._fsIntercepted = true;
+          fsBtn.addEventListener('click', (e) => {
+            e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+            document.fullscreenElement ? document.exitFullscreen() : wrapper.requestFullscreen();
+          }, true);
+          clearInterval(pollFS);
+        }, 200);
+
         // When exiting fullscreen, close the side panel
+        // When entering/exiting fullscreen, re-inject our custom buttons (Vidstack may re-render controls)
         document.addEventListener('fullscreenchange', () => {
           if (!document.fullscreenElement && currentPanel) closePanel();
+          // Re-inject buttons after a short delay (Vidstack may rebuild controls)
+          setTimeout(() => {
+            if (!player.querySelector('.custom-comments-btn')) interceptCommentsButton();
+            const chapMenu = player.querySelector('.vds-chapters-menu media-menu-button');
+            if (chapMenu && !chapMenu._chaptersIntercepted) interceptChaptersButton();
+          }, 500);
         });
 
         // Autoplay only on desktop — mobile browsers block it and it causes infinite loading
