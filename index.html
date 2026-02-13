@@ -22,7 +22,7 @@
     media-player video, media-player iframe { object-fit: contain !important; }
 
     /* ── Side panel (shared by chapters + comments) ── */
-    .side-panel { width: 0; overflow: hidden; background: #1a1a1a; border-left: 1px solid #2a2a2a; transition: width 0.3s ease; display: flex; flex-direction: column; height: 100%; }
+    .side-panel { position: absolute; right: 0; top: 0; bottom: 0; width: 0; overflow: hidden; background: #1a1a1a; border-left: 1px solid #2a2a2a; transition: width 0.3s ease; display: flex; flex-direction: column; z-index: 100; box-shadow: -4px 0 24px rgba(0,0,0,0.4); }
     .side-panel.open { width: 540px; }
     .side-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0; }
     .side-panel-header h3 { font-size: 1.1rem; font-weight: 600; color: #fff; }
@@ -60,14 +60,8 @@
     /* ── Fullscreen ── */
     .fullscreen-wrapper { position: relative; background: #000; }
     .fullscreen-wrapper:fullscreen { overflow-y: auto; background: #0f0f0f; }
-    .fullscreen-wrapper:fullscreen .theatre-row { height: 100vh; position: relative; }
+    .fullscreen-wrapper:fullscreen .theatre-row { height: 100vh; }
     .fullscreen-wrapper:fullscreen media-player { height: 100vh; }
-    /* Side panel overlays from the right in fullscreen */
-    .fullscreen-wrapper:fullscreen .side-panel {
-      position: absolute; right: 0; top: 0; bottom: 0; z-index: 200;
-      border-left: 1px solid #333; box-shadow: -4px 0 24px rgba(0,0,0,0.5);
-    }
-    .fullscreen-wrapper:fullscreen .side-panel.open { display: flex; width: 540px; }
     .fs-content { display: none; padding: 1.5rem 2rem 3rem; max-width: 800px; margin: 0 auto; }
     .fullscreen-wrapper:fullscreen .fs-content { display: block; }
 
@@ -290,21 +284,21 @@
             <svg class="mobile-play-icon" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
             <svg class="mobile-pause-icon" viewBox="0 0 24 24" fill="white" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
           </button>
-        </media-player>
-      </div>
 
-      <!-- Shared side panel for chapters + comments -->
-      <div class="side-panel" id="sidePanel">
-        <div class="side-panel-header">
-          <h3 id="sidePanelTitle">In this video</h3>
-          <button class="side-panel-close" id="sidePanelClose" type="button" aria-label="Close panel">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-          </button>
-        </div>
-        <div class="side-panel-body">
-          <div class="panel-content active" id="panelChapters"></div>
-          <div class="panel-content" id="panelComments"></div>
-        </div>
+          <!-- Side panel lives inside media-player so it's visible in Vidstack's native fullscreen -->
+          <div class="side-panel" id="sidePanel">
+            <div class="side-panel-header">
+              <h3 id="sidePanelTitle">In this video</h3>
+              <button class="side-panel-close" id="sidePanelClose" type="button" aria-label="Close panel">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+              </button>
+            </div>
+            <div class="side-panel-body">
+              <div class="panel-content active" id="panelChapters"></div>
+              <div class="panel-content" id="panelComments"></div>
+            </div>
+          </div>
+        </media-player>
       </div>
     </div>
     <div class="fs-content"></div>
@@ -463,23 +457,9 @@
 
         player.addEventListener('media-fullscreen-request', (e) => { e.preventDefault(); e.stopPropagation(); document.fullscreenElement ? document.exitFullscreen() : wrapper.requestFullscreen(); });
 
-        // Also intercept the fullscreen button directly to ensure our wrapper goes fullscreen
-        const pollFS = setInterval(() => {
-          const fsBtn = player.querySelector('media-fullscreen-button') || player.querySelector('.vds-fullscreen-button');
-          if (!fsBtn || fsBtn._fsIntercepted) { if (fsBtn) clearInterval(pollFS); return; }
-          fsBtn._fsIntercepted = true;
-          fsBtn.addEventListener('click', (e) => {
-            e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-            document.fullscreenElement ? document.exitFullscreen() : wrapper.requestFullscreen();
-          }, true);
-          clearInterval(pollFS);
-        }, 200);
-
-        // When exiting fullscreen, close the side panel
         // When entering/exiting fullscreen, re-inject our custom buttons (Vidstack may re-render controls)
         document.addEventListener('fullscreenchange', () => {
           if (!document.fullscreenElement && currentPanel) closePanel();
-          // Re-inject buttons after a short delay (Vidstack may rebuild controls)
           setTimeout(() => {
             if (!player.querySelector('.custom-comments-btn')) interceptCommentsButton();
             const chapMenu = player.querySelector('.vds-chapters-menu media-menu-button');
