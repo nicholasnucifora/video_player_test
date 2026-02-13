@@ -61,6 +61,9 @@
     .fullscreen-wrapper { position: relative; background: #000; }
     .fullscreen-wrapper:fullscreen { overflow-y: auto; background: #0f0f0f; }
     .fullscreen-wrapper:fullscreen .theatre-row, .fullscreen-wrapper:fullscreen media-player { height: 100vh; }
+    /* Side panel works in fullscreen — ensure it's visible and on top */
+    .fullscreen-wrapper:fullscreen .side-panel { z-index: 200; }
+    .fullscreen-wrapper:fullscreen .side-panel.open { display: flex; }
     .fs-content { display: none; padding: 1.5rem 2rem 3rem; max-width: 800px; margin: 0 auto; }
     .fullscreen-wrapper:fullscreen .fs-content { display: block; }
 
@@ -455,6 +458,11 @@
         });
 
         player.addEventListener('media-fullscreen-request', (e) => { e.preventDefault(); e.stopPropagation(); document.fullscreenElement ? document.exitFullscreen() : wrapper.requestFullscreen(); });
+
+        // When exiting fullscreen, close the side panel
+        document.addEventListener('fullscreenchange', () => {
+          if (!document.fullscreenElement && currentPanel) closePanel();
+        });
 
         // Autoplay only on desktop — mobile browsers block it and it causes infinite loading
         if (!isMobile()) {
