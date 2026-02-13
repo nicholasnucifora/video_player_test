@@ -17,13 +17,22 @@
 
     /* ── Theatre layout ── */
     .theatre-row { display: flex; width: 100%; background: #000; height: 100vh; max-height: 100vh; overflow: hidden; }
-    .player-col { flex: 1; min-width: 0; position: relative; background: #000; overflow: hidden; display: flex; flex-direction: row; }
-    media-player { flex: 1; min-width: 0; height: 100%; display: block; }
+    .player-col { flex: 1; min-width: 0; position: relative; background: #000; overflow: hidden; }
+    media-player { width: 100%; height: 100%; display: block; position: relative; }
     media-player video, media-player iframe { object-fit: contain !important; }
 
     /* ── Side panel (shared by chapters + comments) ── */
-    .side-panel { width: 0; overflow: hidden; background: #1a1a1a; border-left: 1px solid #2a2a2a; transition: width 0.3s ease; display: flex; flex-direction: column; flex-shrink: 0; z-index: 100; height: 100%; }
+    .side-panel { position: absolute; right: 0; top: 0; bottom: 0; width: 0; overflow: hidden; background: #1a1a1a; border-left: 1px solid #2a2a2a; transition: width 0.3s ease; display: flex; flex-direction: column; z-index: 100; }
     .side-panel.open { width: 540px; }
+    /* On desktop, shrink the video area when panel is open */
+    media-player.panel-open video,
+    media-player.panel-open iframe { width: calc(100% - 540px) !important; }
+    media-player.panel-open .vds-controls { right: 540px; }
+    @media (max-width: 768px) {
+      media-player.panel-open video,
+      media-player.panel-open iframe { width: calc(100% - 75vw) !important; }
+      media-player.panel-open .vds-controls { right: 75vw; }
+    }
     .side-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0; }
     .side-panel-header h3 { font-size: 1.1rem; font-weight: 600; color: #fff; }
     .side-panel-close { appearance: none; border: none; background: none; color: #aaa; cursor: pointer; padding: 4px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
@@ -62,9 +71,9 @@
     .fullscreen-wrapper:fullscreen { overflow-y: auto; background: #0f0f0f; }
     .fullscreen-wrapper:fullscreen .theatre-row { height: 100vh; }
     .fullscreen-wrapper:fullscreen media-player { height: 100vh; }
-    /* When player-col goes fullscreen, it becomes the root — flex still works */
+    /* When player-col goes fullscreen on desktop */
     .player-col:fullscreen { background: #000; }
-    .player-col:fullscreen media-player { height: 100%; }
+    .player-col:fullscreen media-player { width: 100%; height: 100%; }
     .fs-content { display: none; padding: 1.5rem 2rem 3rem; max-width: 800px; margin: 0 auto; }
     .fullscreen-wrapper:fullscreen .fs-content { display: block; }
 
@@ -258,12 +267,13 @@
 
     /* ── Responsive ── */
     @media (max-width: 768px) {
-      .side-panel { display: none !important; }
       .theatre-row { height: auto; max-height: none; flex-direction: column; }
       .player-col { display: block; }
-      media-player { aspect-ratio: 16/9; height: auto; flex: none; }
+      media-player { aspect-ratio: 16/9; height: auto; }
       .mobile-chapters-section { display: block; }
       .custom-comments-btn { display: none !important; }
+      /* In mobile fullscreen, panel overlays full width */
+      .side-panel.open { width: 75vw; }
     }
     @media (max-width: 600px) {
       .custom-actions { bottom: 48px; right: 8px; gap: 4px; }
@@ -293,21 +303,20 @@
             <svg class="mobile-pause-icon" viewBox="0 0 24 24" fill="white" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
           </button>
 
+          <!-- Side panel inside media-player so it's visible in native fullscreen -->
+          <div class="side-panel" id="sidePanel">
+            <div class="side-panel-header">
+              <h3 id="sidePanelTitle">In this video</h3>
+              <button class="side-panel-close" id="sidePanelClose" type="button" aria-label="Close panel">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+              </button>
+            </div>
+            <div class="side-panel-body">
+              <div class="panel-content active" id="panelChapters"></div>
+              <div class="panel-content" id="panelComments"></div>
+            </div>
+          </div>
         </media-player>
-
-        <!-- Side panel lives inside player-col so it's visible in fullscreen -->
-        <div class="side-panel" id="sidePanel">
-          <div class="side-panel-header">
-            <h3 id="sidePanelTitle">In this video</h3>
-            <button class="side-panel-close" id="sidePanelClose" type="button" aria-label="Close panel">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-            </button>
-          </div>
-          <div class="side-panel-body">
-            <div class="panel-content active" id="panelChapters"></div>
-            <div class="panel-content" id="panelComments"></div>
-          </div>
-        </div>
       </div>
     </div>
     <div class="fs-content"></div>
@@ -349,8 +358,8 @@
     let currentPanel = null; // 'chapters' | 'comments' | null
 
     function openPanel(type) {
-      // On mobile, chapters are already below the video — only comments use the scroll-to approach
-      if (isMobile()) {
+      // On mobile (not fullscreen), chapters/comments are below the video — scroll to them
+      if (isMobile() && !document.fullscreenElement) {
         if (type === 'comments') {
           const commentsSection = document.querySelector('.comments-section');
           if (commentsSection) commentsSection.scrollIntoView({ behavior: 'smooth' });
@@ -363,6 +372,7 @@
       if (currentPanel === type) { closePanel(); return; }
       currentPanel = type;
       sidePanel.classList.add('open');
+      document.querySelector('media-player')?.classList.add('panel-open');
       if (type === 'chapters') {
         sidePanelTitle.textContent = 'In this video';
         panelChapters.classList.add('active');
@@ -377,6 +387,7 @@
 
     function closePanel() {
       sidePanel.classList.remove('open');
+      document.querySelector('media-player')?.classList.remove('panel-open');
       currentPanel = null;
     }
 
