@@ -1,15 +1,29 @@
 export default async function handler(req, res) {
-  const { id } = req.query;
+  const { id, commentsPage } = req.query;
   if (!id) return res.status(400).json({ error: 'Missing video id' });
 
   const key = process.env.GOOGLE_API_KEY;
   if (!key) return res.status(500).json({ error: 'API key not configured' });
 
   try {
+    // If commentsPage is provided, only fetch the next page of comments
+    if (commentsPage) {
+      const commentsRes = await fetch(
+        `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${id}&maxResults=20&order=relevance&pageToken=${commentsPage}&key=${key}`
+      ).catch(() => null);
+      const commentsData = commentsRes ? await commentsRes.json() : { items: [] };
+      const comments = (commentsData.items || []).map((c) => {
+        const s = c.snippet.topLevelComment.snippet;
+        return { author: s.authorDisplayName, avatar: s.authorProfileImageUrl, text: s.textDisplay, likes: s.likeCount, date: s.publishedAt };
+      });
+      res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
+      return res.json({ comments, nextPageToken: commentsData.nextPageToken || null });
+    }
+
     // Fetch video snippet + contentDetails + comments in parallel
     const [videoRes, commentsRes] = await Promise.all([
       fetch(
-        `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${id}&key=${key}`
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${id}&key=${key}`
       ),
       fetch(
         `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${id}&maxResults=20&order=relevance&key=${key}`
@@ -51,7 +65,9 @@ export default async function handler(req, res) {
       channelTitle: snippet.channelTitle,
       channelAvatar: channelThumb,
       duration: item.contentDetails.duration,
+      commentCount: item.statistics?.commentCount || 0,
       comments,
+      nextPageToken: commentsData.nextPageToken || null,
     });
   } catch (err) {
     return res.status(500).json({ error: err.message });

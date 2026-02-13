@@ -176,6 +176,33 @@
     .comment .text { font-size: 0.85rem; color: #ccc; line-height: 1.5; word-wrap: break-word; }
     .comment .meta { font-size: 0.75rem; color: #666; margin-top: 4px; }
 
+    /* ── Links in description/comments ── */
+    .desc-preview a, .comment .text a {
+      color: #93b3e6;
+      text-decoration: none;
+    }
+    .desc-preview a:hover, .comment .text a:hover {
+      text-decoration: underline;
+      color: #b3ccf5;
+    }
+
+    /* ── Load more comments button ── */
+    .load-more-btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin-top: 12px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      color: #aaa;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .load-more-btn:hover { background: #252525; color: #fff; }
+    .load-more-btn:disabled { opacity: 0.5; cursor: default; }
+
     /* ── Scroll hint ── */
     .scroll-hint { display: none; position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.12); backdrop-filter: blur(6px); border-radius: 20px; padding: 6px 18px; font-size: 13px; color: #ccc; z-index: 100; cursor: pointer; animation: bounce 2s infinite; }
     .fullscreen-wrapper:fullscreen .scroll-hint { display: block; }
@@ -260,7 +287,8 @@
           poster="https://i.ytimg.com/vi/YFjfBk8HI5o/maxresdefault.jpg"
           crossorigin
           playsinline
-          load="visible"
+          load="eager"
+          autoplay
         >
           <media-provider></media-provider>
           <media-video-layout></media-video-layout>
@@ -473,6 +501,9 @@
       });
     });
 
+    let nextCommentsPageToken = null;
+    let loadingComments = false;
+
     // ── Load video data ──
     async function loadVideoData() {
       try {
@@ -488,24 +519,17 @@
           if (data.channelAvatar) document.getElementById('channelAvatar').src = data.channelAvatar;
         }
 
-        document.getElementById('descText').textContent = data.description || 'No description.';
+        document.getElementById('descText').innerHTML = linkify(data.description || 'No description.');
 
-        const list = document.getElementById('commentsList');
+        const commentCount = data.commentCount ? Number(data.commentCount).toLocaleString() : '';
+        document.getElementById('commentsHeading').textContent = commentCount ? `Comments (${commentCount})` : 'Comments';
+
         if (data.comments?.length) {
-          document.getElementById('commentsHeading').textContent = `Comments (${data.comments.length})`;
-          data.comments.forEach(c => {
-            const el = document.createElement('div');
-            el.className = 'comment';
-            el.innerHTML = `
-              <img src="${c.avatar}" alt="" />
-              <div class="comment-body">
-                <div class="author">${escHtml(c.author)}</div>
-                <div class="text">${c.text}</div>
-                <div class="meta">${c.likes ? c.likes + ' likes · ' : ''}${timeAgo(c.date)}</div>
-              </div>`;
-            list.appendChild(el);
-          });
+          appendComments(data.comments);
         }
+
+        nextCommentsPageToken = data.nextPageToken;
+        updateLoadMoreBtn();
 
         const chapters = parseChapters(data.description, parseDuration(data.duration));
         if (chapters.length > 0) {
@@ -516,53 +540,123 @@
       } catch (err) { console.error('Failed to load video data:', err); }
     }
 
+    function appendComments(comments) {
+      const list = document.getElementById('commentsList');
+      comments.forEach(c => {
+        const el = document.createElement('div');
+        el.className = 'comment';
+        el.innerHTML = `
+          <img src="${c.avatar}" alt="" />
+          <div class="comment-body">
+            <div class="author">${escHtml(c.author)}</div>
+            <div class="text">${c.text}</div>
+            <div class="meta">${c.likes ? c.likes + ' likes · ' : ''}${timeAgo(c.date)}</div>
+          </div>`;
+        list.appendChild(el);
+      });
+    }
+
+    function updateLoadMoreBtn() {
+      let btn = document.getElementById('loadMoreBtn');
+      if (nextCommentsPageToken) {
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.id = 'loadMoreBtn';
+          btn.className = 'load-more-btn';
+          btn.textContent = 'Load more comments';
+          btn.addEventListener('click', loadMoreComments);
+          document.getElementById('commentsList').after(btn);
+        }
+        btn.style.display = 'block';
+      } else if (btn) {
+        btn.style.display = 'none';
+      }
+    }
+
+    async function loadMoreComments() {
+      if (loadingComments || !nextCommentsPageToken) return;
+      loadingComments = true;
+      const btn = document.getElementById('loadMoreBtn');
+      if (btn) { btn.textContent = 'Loading...'; btn.disabled = true; }
+
+      try {
+        const res = await fetch(`/api/video?id=${VIDEO_ID}&commentsPage=${nextCommentsPageToken}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.comments?.length) appendComments(data.comments);
+        nextCommentsPageToken = data.nextPageToken;
+        updateLoadMoreBtn();
+      } catch (err) { console.error('Failed to load more comments:', err); }
+      finally {
+        loadingComments = false;
+        if (btn) { btn.textContent = 'Load more comments'; btn.disabled = false; }
+      }
+    }
+
+    // Infinite scroll for comments
+    window.addEventListener('scroll', () => {
+      if (loadingComments || !nextCommentsPageToken) return;
+      const scrollBottom = window.innerHeight + window.scrollY;
+      if (scrollBottom >= document.body.offsetHeight - 400) {
+        loadMoreComments();
+      }
+    });
+
+    function linkify(text) {
+      // Convert URLs to clickable links, then preserve newlines
+      return escHtml(text)
+        .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
+        .replace(/\n/g, '<br>');
+    }
+
     function interceptChaptersButton() {
       customElements.whenDefined('media-player').then(() => {
         const player = document.querySelector('media-player');
 
-        // Poll until Vidstack renders its controls (more reliable than MutationObserver)
-        const poll = setInterval(() => {
+        function tryIntercept() {
           const menus = player.querySelectorAll('media-menu');
-          if (!menus.length) return;
+          let found = false;
 
           menus.forEach(menu => {
-            // Check if this is the chapters menu
-            const items = menu.querySelector('[class*="chapter"]');
-            if (!items) return;
+            const hasChapters = menu.querySelector('[class*="chapter"]');
+            if (!hasChapters) return;
 
             const btn = menu.querySelector('media-menu-button');
             if (!btn || btn._intercepted) return;
             btn._intercepted = true;
+            found = true;
 
-            // Capture phase listener to intercept before Vidstack handles it
-            btn.addEventListener('pointerup', (e) => {
+            // Replace the button's click behavior entirely
+            // Clone and replace to remove all existing listeners
+            const newBtn = btn.cloneNode(true);
+            newBtn._intercepted = true;
+            btn.parentNode.replaceChild(newBtn, btn);
+
+            newBtn.addEventListener('click', (e) => {
               e.preventDefault();
               e.stopPropagation();
               e.stopImmediatePropagation();
+              // Force close any Vidstack menu that might have opened
+              menus.forEach(m => { m.removeAttribute('open'); m.removeAttribute('data-open'); });
               toggleChaptersPanel();
             }, true);
 
-            btn.addEventListener('click', (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              e.stopImmediatePropagation();
-              // Force close the menu if it somehow opened
-              menu.removeAttribute('open');
-              menu.removeAttribute('data-open');
-            }, true);
-
-            // Also prevent keyboard activation
-            btn.addEventListener('keydown', (e) => {
-              if (e.code === 'Enter' || e.code === 'Space') {
-                e.preventDefault();
+            // Also block pointerdown/pointerup to prevent Vidstack's internal handling
+            ['pointerdown', 'pointerup', 'mousedown', 'mouseup'].forEach(evt => {
+              newBtn.addEventListener(evt, (e) => {
                 e.stopPropagation();
                 e.stopImmediatePropagation();
-                toggleChaptersPanel();
-              }
-            }, true);
+              }, true);
+            });
           });
 
-          clearInterval(poll);
+          return found;
+        }
+
+        // Poll until we find and intercept the button
+        let attempts = 0;
+        const poll = setInterval(() => {
+          if (tryIntercept() || ++attempts > 50) clearInterval(poll);
         }, 200);
       });
     }
