@@ -99,8 +99,9 @@
     .comment-thread.thread-hover .thread-stem::after,
     .comment-thread.thread-hover .replies-collapse-line::after { background: #888; }
 
-    /* Top "Show X replies" toggle — sits below the parent comment, indented to avatar center */
-    .replies-toggle-top { appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.9rem; font-weight: 600; cursor: pointer; padding: 8px 12px; display: flex; align-items: center; gap: 6px; transition: background 0.15s; margin-top: 2px; margin-left: 48px; border-radius: 20px; }
+    /* Top "Show X replies" toggle — tree item with L-curve from the stem */
+    .replies-toggle-top { position: relative; appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.9rem; font-weight: 600; cursor: pointer; padding: 8px 12px 8px 22px; display: flex; align-items: center; gap: 6px; transition: background 0.15s; margin-top: 2px; margin-left: 18px; border-radius: 20px; }
+    .replies-toggle-top::after { content: ''; position: absolute; left: 0; top: 2px; width: 14px; height: 16px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
     .replies-toggle-top:hover { background: rgba(147,179,230,0.1); }
 
     /* Replies container — indented so the collapse line aligns under parent avatar center */
@@ -736,7 +737,10 @@
           subCollapseLine.addEventListener('mouseleave', subHoverOff);
 
           subCollapseLine.addEventListener('click', hideSubs);
-          subStem.addEventListener('click', () => { if (subContainer.classList.contains('show')) hideSubs(); });
+          subStem.addEventListener('click', () => {
+            if (subContainer.classList.contains('show')) hideSubs();
+            else showSubs();
+          });
           subContainer.appendChild(subCollapseLine);
 
           subs.forEach(sr => {
@@ -786,10 +790,10 @@
         </div>`;
         if (c.replyCount > 0) {
           html += `<div class="thread-stem" style="left:14px;top:36px;"></div>`;
-          html += `<button class="replies-toggle-top" data-comment-id="${c.id}" style="margin-left:40px;font-size:0.75rem;">
+          html += `<button class="replies-toggle-top" data-comment-id="${c.id}" style="margin-left:14px;font-size:0.75rem;">
             Show ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}
           </button>`;
-          html += `<div class="replies-container" id="panel-replies-${c.id}" style="margin-left:40px;"></div>`;
+          html += `<div class="replies-container" id="panel-replies-${c.id}" style="margin-left:14px;"></div>`;
         }
         thread.innerHTML = html;
         container.appendChild(thread);
