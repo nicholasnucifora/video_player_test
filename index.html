@@ -17,22 +17,13 @@
 
     /* ── Theatre layout ── */
     .theatre-row { display: flex; width: 100%; background: #000; height: 100vh; max-height: 100vh; overflow: hidden; }
-    .player-col { flex: 1; min-width: 0; position: relative; background: #000; overflow: hidden; }
-    media-player { width: 100%; height: 100%; display: block; position: relative; }
+    .player-col { flex: 1; min-width: 0; position: relative; background: #000; overflow: hidden; display: flex; flex-direction: row; }
+    media-player { flex: 1; min-width: 0; height: 100%; display: block; }
     media-player video, media-player iframe { object-fit: contain !important; }
 
     /* ── Side panel (shared by chapters + comments) ── */
-    .side-panel { position: absolute; right: 0; top: 0; bottom: 0; width: 0; overflow: hidden; background: #1a1a1a; border-left: 1px solid #2a2a2a; transition: width 0.3s ease; display: flex; flex-direction: column; z-index: 100; }
+    .side-panel { width: 0; overflow: hidden; background: #1a1a1a; border-left: 1px solid #2a2a2a; transition: width 0.3s ease; display: flex; flex-direction: column; flex-shrink: 0; z-index: 100; height: 100%; }
     .side-panel.open { width: 540px; }
-    /* On desktop, shrink the video area when panel is open */
-    media-player.panel-open video,
-    media-player.panel-open iframe { width: calc(100% - 540px) !important; }
-    media-player.panel-open .vds-controls { right: 540px; }
-    @media (max-width: 768px) {
-      media-player.panel-open video,
-      media-player.panel-open iframe { width: calc(100% - 75vw) !important; }
-      media-player.panel-open .vds-controls { right: 75vw; }
-    }
     .side-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0; }
     .side-panel-header h3 { font-size: 1.1rem; font-weight: 600; color: #fff; }
     .side-panel-close { appearance: none; border: none; background: none; color: #aaa; cursor: pointer; padding: 4px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
@@ -71,9 +62,13 @@
     .fullscreen-wrapper:fullscreen { overflow-y: auto; background: #0f0f0f; }
     .fullscreen-wrapper:fullscreen .theatre-row { height: 100vh; }
     .fullscreen-wrapper:fullscreen media-player { height: 100vh; }
-    /* When player-col goes fullscreen on desktop */
+    /* Desktop fullscreen via player-col */
     .player-col:fullscreen { background: #000; }
-    .player-col:fullscreen media-player { width: 100%; height: 100%; }
+    .player-col:fullscreen media-player { height: 100%; }
+
+    /* Mobile fullscreen overlay panel — fixed position overlay when in fullscreen */
+    .fs-overlay-panel { display: none; position: fixed; top: 0; right: 0; bottom: 0; width: 75vw; max-width: 400px; background: #1a1a1a; border-left: 1px solid #2a2a2a; z-index: 9999; flex-direction: column; box-shadow: -4px 0 24px rgba(0,0,0,0.6); }
+    .fs-overlay-panel.open { display: flex; }
     .fs-content { display: none; padding: 1.5rem 2rem 3rem; max-width: 800px; margin: 0 auto; }
     .fullscreen-wrapper:fullscreen .fs-content { display: block; }
 
@@ -267,13 +262,12 @@
 
     /* ── Responsive ── */
     @media (max-width: 768px) {
+      .side-panel { display: none !important; }
       .theatre-row { height: auto; max-height: none; flex-direction: column; }
       .player-col { display: block; }
-      media-player { aspect-ratio: 16/9; height: auto; }
+      media-player { aspect-ratio: 16/9; height: auto; flex: none; }
       .mobile-chapters-section { display: block; }
       .custom-comments-btn { display: none !important; }
-      /* In mobile fullscreen, panel overlays full width */
-      .side-panel.open { width: 75vw; }
     }
     @media (max-width: 600px) {
       .custom-actions { bottom: 48px; right: 8px; gap: 4px; }
@@ -304,7 +298,32 @@
           </button>
 
         </media-player>
+
+        <!-- Desktop side panel — flex sibling of media-player -->
+        <div class="side-panel" id="sidePanel">
+          <div class="side-panel-header">
+            <h3 id="sidePanelTitle">In this video</h3>
+            <button class="side-panel-close" id="sidePanelClose" type="button" aria-label="Close panel">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+          </div>
+          <div class="side-panel-body">
+            <div class="panel-content active" id="panelChapters"></div>
+            <div class="panel-content" id="panelComments"></div>
+          </div>
+        </div>
       </div>
+    </div>
+
+    <!-- Mobile fullscreen overlay panel — lives outside the player, shown via fixed positioning -->
+    <div class="fs-overlay-panel" id="fsOverlayPanel">
+      <div class="side-panel-header">
+        <h3 id="fsOverlayTitle">In this video</h3>
+        <button class="side-panel-close" id="fsOverlayClose" type="button" aria-label="Close panel">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <div class="side-panel-body" id="fsOverlayBody"></div>
     </div>
     <div class="fs-content"></div>
     <div class="scroll-hint" id="scrollHint">↓ Scroll for comments</div>
@@ -338,65 +357,56 @@
     const isMobile = () => window.matchMedia('(pointer: coarse)').matches;
 
     // ── Side panel (shared chapters + comments) ──
-    let sidePanel, sidePanelTitle, panelChapters, panelComments;
+    const sidePanel = document.getElementById('sidePanel');
+    const sidePanelTitle = document.getElementById('sidePanelTitle');
+    const panelChapters = document.getElementById('panelChapters');
+    const panelComments = document.getElementById('panelComments');
+    const fsOverlayPanel = document.getElementById('fsOverlayPanel');
+    const fsOverlayTitle = document.getElementById('fsOverlayTitle');
+    const fsOverlayBody = document.getElementById('fsOverlayBody');
     let currentPanel = null; // 'chapters' | 'comments' | null
-    let sidePanelReady = false;
-
-    function ensureSidePanel() {
-      if (sidePanelReady) return true;
-      const player = document.querySelector('media-player');
-      if (!player) return false;
-      // Check if already injected
-      if (player.querySelector('#sidePanel')) {
-        sidePanel = player.querySelector('#sidePanel');
-        sidePanelTitle = player.querySelector('#sidePanelTitle');
-        panelChapters = player.querySelector('#panelChapters');
-        panelComments = player.querySelector('#panelComments');
-        sidePanelReady = true;
-        return true;
-      }
-      // Create and inject into media-player
-      const div = document.createElement('div');
-      div.className = 'side-panel';
-      div.id = 'sidePanel';
-      div.innerHTML = `<div class="side-panel-header">
-        <h3 id="sidePanelTitle">In this video</h3>
-        <button class="side-panel-close" id="sidePanelClose" type="button" aria-label="Close panel">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-        </button>
-      </div>
-      <div class="side-panel-body">
-        <div class="panel-content active" id="panelChapters"></div>
-        <div class="panel-content" id="panelComments"></div>
-      </div>`;
-      player.appendChild(div);
-      sidePanel = div;
-      sidePanelTitle = div.querySelector('#sidePanelTitle');
-      panelChapters = div.querySelector('#panelChapters');
-      panelComments = div.querySelector('#panelComments');
-      div.querySelector('#sidePanelClose').addEventListener('click', closePanel);
-      sidePanelReady = true;
-      console.log('Side panel injected into media-player');
-      return true;
-    }
 
     function openPanel(type) {
-      // On mobile (not fullscreen), chapters/comments are below the video — scroll to them
+      // Mobile (not fullscreen): scroll to below-player sections
       if (isMobile() && !document.fullscreenElement) {
         if (type === 'comments') {
-          const commentsSection = document.querySelector('.comments-section');
-          if (commentsSection) commentsSection.scrollIntoView({ behavior: 'smooth' });
+          const el = document.querySelector('.comments-section');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
         } else if (type === 'chapters') {
-          const mobileChapters = document.getElementById('mobileChapters');
-          if (mobileChapters) mobileChapters.scrollIntoView({ behavior: 'smooth' });
+          const el = document.getElementById('mobileChapters');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
         }
         return;
       }
-      if (!ensureSidePanel()) return;
+      // Mobile fullscreen: use the fixed overlay panel
+      if (isMobile() && document.fullscreenElement) {
+        if (currentPanel === type) { closePanel(); return; }
+        currentPanel = type;
+        fsOverlayTitle.textContent = type === 'chapters' ? 'In this video' : 'Comments';
+        fsOverlayBody.innerHTML = '';
+        if (type === 'chapters') {
+          // Clone chapter items into overlay
+          const src = document.getElementById('panelChapters');
+          if (src) fsOverlayBody.innerHTML = src.innerHTML;
+          // Re-attach click handlers for chapter items
+          fsOverlayBody.querySelectorAll('.chapter-item').forEach(item => {
+            item.addEventListener('click', () => {
+              const p = document.querySelector('media-player');
+              if (p) { p.currentTime = parseFloat(item.dataset.start); p.play(); }
+            });
+          });
+        } else {
+          fsOverlayBody.textContent = 'Comments not available in fullscreen.';
+          fsOverlayBody.style.padding = '20px';
+          fsOverlayBody.style.color = '#888';
+        }
+        fsOverlayPanel.classList.add('open');
+        return;
+      }
+      // Desktop: use the flex side panel
       if (currentPanel === type) { closePanel(); return; }
       currentPanel = type;
       sidePanel.classList.add('open');
-      document.querySelector('media-player')?.classList.add('panel-open');
       if (type === 'chapters') {
         sidePanelTitle.textContent = 'In this video';
         panelChapters.classList.add('active');
@@ -410,10 +420,13 @@
     }
 
     function closePanel() {
-      if (sidePanel) sidePanel.classList.remove('open');
-      document.querySelector('media-player')?.classList.remove('panel-open');
+      sidePanel.classList.remove('open');
+      fsOverlayPanel.classList.remove('open');
       currentPanel = null;
     }
+
+    document.getElementById('sidePanelClose').addEventListener('click', closePanel);
+    document.getElementById('fsOverlayClose').addEventListener('click', closePanel);
 
     // ── Button handlers ──
     document.getElementById('saveBtn').addEventListener('click', (e) => {
@@ -541,6 +554,13 @@
               const chapMenu = player.querySelector('.vds-chapters-menu media-menu-button');
               if (chapMenu && !chapMenu._chaptersIntercepted) interceptChaptersButton();
             }, 500);
+          });
+        }
+
+        // Close mobile overlay panel when exiting fullscreen
+        if (isMobile()) {
+          document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && currentPanel) closePanel();
           });
         }
 
@@ -958,7 +978,6 @@
     }
 
     function populatePanelComments() {
-      ensureSidePanel();
       const container = document.getElementById('panelComments');
       if (!container) return;
       container.innerHTML = '';
@@ -1205,7 +1224,6 @@
     }
 
     function renderChaptersPanel(chapters) {
-      ensureSidePanel();
       const list = document.getElementById('panelChapters');
       if (!list) return;
       list.innerHTML = '';
