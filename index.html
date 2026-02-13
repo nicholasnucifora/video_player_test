@@ -47,8 +47,9 @@
     .chapter-info .chapter-label { font-size: 0.85rem; font-weight: 500; color: #eee; line-height: 1.3; margin-bottom: 2px; }
     .chapter-info .chapter-time { font-size: 0.78rem; color: #888; font-variant-numeric: tabular-nums; }
 
-    /* ── Kill Vidstack's chapters dropdown ── */
+    /* ── Kill Vidstack's entire chapters menu — we replace it with our own button ── */
     .vds-chapters-menu-items, .vds-chapters-radio-group, media-menu-items[class*="chapter"] { display: none !important; height: 0 !important; overflow: hidden !important; pointer-events: none !important; }
+    media-menu:has([class*="chapter"]), .vds-chapters-menu { display: none !important; width: 0 !important; height: 0 !important; overflow: hidden !important; pointer-events: none !important; }
 
     /* ── Below-player ── */
     .below-player { max-width: 960px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
@@ -82,9 +83,11 @@
     .comment-main .text { font-size: 0.85rem; color: #ccc; line-height: 1.5; word-wrap: break-word; }
     .comment-main .meta { font-size: 0.75rem; color: #666; margin-top: 6px; display: flex; align-items: center; gap: 12px; }
 
-    /* Thread line */
-    .comment-thread .thread-line { position: absolute; left: 17px; top: 60px; bottom: 0; width: 2px; background: #333; cursor: pointer; transition: background 0.15s; border-radius: 1px; }
+    /* Thread line — YouTube-style rounded connector */
+    .comment-thread .thread-line { position: absolute; left: 17px; top: 60px; bottom: 8px; width: 2px; background: #333; cursor: pointer; transition: background 0.15s; border-radius: 4px; }
     .comment-thread .thread-line:hover { background: #555; }
+    .comment-thread .thread-line::after { content: ''; position: absolute; bottom: -2px; left: -1px; width: 4px; height: 4px; background: #333; border-radius: 50%; transition: background 0.15s; }
+    .comment-thread .thread-line:hover::after { background: #555; }
 
     /* Replies toggle button */
     .replies-toggle { appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.8rem; font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 16px; display: flex; align-items: center; gap: 4px; transition: background 0.15s; margin-top: 4px; margin-left: 48px; }
@@ -97,6 +100,25 @@
     .replies-container.show { display: block; }
     .replies-container .comment-main { padding: 8px 0; }
     .replies-container .comment-main img { width: 28px; height: 28px; }
+
+    /* Sub-replies (nested replies within replies) */
+    .sub-reply-thread { position: relative; padding-left: 40px; }
+    .sub-reply-thread .thread-line-sub { position: absolute; left: 13px; top: 0; bottom: 8px; width: 2px; background: #2a2a2a; border-radius: 4px; cursor: pointer; transition: background 0.15s; }
+    .sub-reply-thread .thread-line-sub:hover { background: #444; }
+    .sub-reply-thread .thread-line-sub::after { content: ''; position: absolute; bottom: -2px; left: -1px; width: 4px; height: 4px; background: #2a2a2a; border-radius: 50%; transition: background 0.15s; }
+    .sub-reply-thread .thread-line-sub:hover::after { background: #444; }
+
+    /* Mobile chapters section (below video) */
+    .mobile-chapters-section { display: none; margin-bottom: 1.5rem; }
+    .mobile-chapters-section h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
+    .mobile-chapters-list { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .mobile-chapters-list::-webkit-scrollbar { display: none; }
+    .mobile-chapter-chip { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; width: 140px; }
+    .mobile-chapter-chip img { width: 140px; height: 79px; border-radius: 8px; object-fit: cover; background: #333; }
+    .mobile-chapter-chip .chip-label { font-size: 0.78rem; color: #ccc; line-height: 1.3; text-align: center; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .mobile-chapter-chip .chip-time { font-size: 0.72rem; color: #888; font-variant-numeric: tabular-nums; }
+    .mobile-chapter-chip.active { outline: 2px solid #3b82f6; outline-offset: 2px; border-radius: 8px; }
+    .mobile-chapter-chip.active img { border-radius: 8px; }
 
     /* Links */
     .desc-preview a, .comment-main .text a, .panel-comment .text a { color: #93b3e6; text-decoration: none; }
@@ -158,16 +180,14 @@
 
     /* ── Responsive ── */
     @media (max-width: 768px) {
-      .side-panel.open { width: 280px; }
-      .chapter-thumb { width: 80px; height: 45px; }
-      .theatre-row { height: auto; max-height: none; }
+      .side-panel { display: none !important; }
+      .theatre-row { height: auto; max-height: none; flex-direction: column; }
       media-player { aspect-ratio: 16/9; height: auto; }
+      .mobile-chapters-section { display: block; }
     }
     @media (max-width: 600px) {
       .custom-actions { bottom: 48px; right: 8px; gap: 4px; }
       .custom-actions button { padding: 4px 8px; font-size: 10px; }
-      .side-panel { position: absolute; right: 0; top: 0; z-index: 70; height: 100%; border-left: none; }
-      .side-panel.open { width: 85vw; }
     }
 </style>
 </head>
@@ -221,6 +241,10 @@
         <div class="desc-toggle" id="descToggle">Show more</div>
       </div>
     </div>
+    <div class="mobile-chapters-section" id="mobileChapters">
+      <h3>Chapters</h3>
+      <div class="mobile-chapters-list" id="mobileChaptersList"></div>
+    </div>
     <div class="comments-section">
       <h2 id="commentsHeading">Comments</h2>
       <div id="commentsList"></div>
@@ -240,6 +264,17 @@
     let currentPanel = null; // 'chapters' | 'comments' | null
 
     function openPanel(type) {
+      // On mobile, chapters are already below the video — only comments use the scroll-to approach
+      if (isMobile()) {
+        if (type === 'comments') {
+          const commentsSection = document.querySelector('.comments-section');
+          if (commentsSection) commentsSection.scrollIntoView({ behavior: 'smooth' });
+        } else if (type === 'chapters') {
+          const mobileChapters = document.getElementById('mobileChapters');
+          if (mobileChapters) mobileChapters.scrollIntoView({ behavior: 'smooth' });
+        }
+        return;
+      }
       if (currentPanel === type) { closePanel(); return; }
       currentPanel = type;
       sidePanel.classList.add('open');
@@ -380,7 +415,13 @@
         updateLoadMoreBtn();
 
         const chapters = parseChapters(data.description, parseDuration(data.duration));
-        if (chapters.length > 0) { injectChapterTrack(chapters); renderChaptersPanel(chapters); interceptChaptersButton(); interceptCommentsButton(); }
+        if (chapters.length > 0) {
+          injectChapterTrack(chapters);
+          renderChaptersPanel(chapters);
+          renderMobileChapters(chapters);
+          if (!isMobile()) interceptChaptersButton();
+          interceptCommentsButton();
+        }
         else { interceptCommentsButton(); }
       } catch (err) { console.error('Failed to load video data:', err); }
     }
@@ -500,23 +541,31 @@
     }
 
     function interceptChaptersButton() {
+      // Inject a completely new chapters button — no cloning, no duplicates
       customElements.whenDefined('media-player').then(() => {
         const player = document.querySelector('media-player');
         let attempts = 0;
         const poll = setInterval(() => {
-          const menus = player.querySelectorAll('media-menu');
-          let found = false;
-          menus.forEach(menu => {
-            if (!menu.querySelector('[class*="chapter"]')) return;
-            const btn = menu.querySelector('media-menu-button');
-            if (!btn || btn._intercepted) return;
-            btn._intercepted = true; found = true;
-            const newBtn = btn.cloneNode(true); newBtn._intercepted = true;
-            btn.parentNode.replaceChild(newBtn, btn);
-            newBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); menus.forEach(m => { m.removeAttribute('open'); m.removeAttribute('data-open'); }); openPanel('chapters'); }, true);
-            ['pointerdown','pointerup','mousedown','mouseup'].forEach(evt => { newBtn.addEventListener(evt, (e) => { e.stopPropagation(); e.stopImmediatePropagation(); }, true); });
-          });
-          if (found || ++attempts > 50) clearInterval(poll);
+          const groups = player.querySelectorAll('.vds-controls-group');
+          const lastGroup = groups[groups.length - 1];
+          if (!lastGroup) { if (++attempts > 50) clearInterval(poll); return; }
+          if (lastGroup.querySelector('.custom-chapters-btn')) { clearInterval(poll); return; }
+
+          const btn = document.createElement('button');
+          btn.className = 'custom-chapters-btn';
+          btn.setAttribute('aria-label', 'Chapters');
+          btn.style.cssText = 'appearance:none;border:none;background:none;color:#fff;cursor:pointer;padding:7px;display:flex;align-items:center;opacity:0.8;transition:opacity 0.15s;';
+          btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>`;
+          btn.addEventListener('mouseenter', () => btn.style.opacity = '1');
+          btn.addEventListener('mouseleave', () => btn.style.opacity = '0.8');
+          btn.addEventListener('click', (e) => { e.stopPropagation(); e.stopImmediatePropagation(); openPanel('chapters'); }, true);
+          ['pointerdown','pointerup','mousedown','mouseup'].forEach(evt => { btn.addEventListener(evt, (e) => { e.stopPropagation(); e.stopImmediatePropagation(); }, true); });
+
+          // Insert before fullscreen button
+          const fsBtn = lastGroup.querySelector('media-fullscreen-button');
+          if (fsBtn) lastGroup.insertBefore(btn, fsBtn);
+          else lastGroup.appendChild(btn);
+          clearInterval(poll);
         }, 200);
       });
     }
@@ -570,6 +619,36 @@
         item.addEventListener('click', () => { const p = document.querySelector('media-player'); if (p) { p.currentTime = ch.seconds; p.play(); } });
         list.appendChild(item);
       });
+    }
+
+    function renderMobileChapters(chapters) {
+      const list = document.getElementById('mobileChaptersList');
+      if (!list) return;
+      list.innerHTML = '';
+      const thumb = `https://i.ytimg.com/vi/${VIDEO_ID}/mqdefault.jpg`;
+      chapters.forEach(ch => {
+        const chip = document.createElement('div');
+        chip.className = 'mobile-chapter-chip';
+        chip.dataset.start = ch.seconds;
+        chip.dataset.end = ch.end;
+        chip.innerHTML = `<img src="${thumb}" alt="" /><div class="chip-label">${escHtml(ch.label)}</div><div class="chip-time">${ch.time}</div>`;
+        chip.addEventListener('click', () => { const p = document.querySelector('media-player'); if (p) { p.currentTime = ch.seconds; p.play(); } });
+        list.appendChild(chip);
+      });
+
+      // Update active mobile chapter on timeupdate
+      const player = document.querySelector('media-player');
+      if (player) {
+        player.addEventListener('timeupdate', () => {
+          const time = player.currentTime;
+          list.querySelectorAll('.mobile-chapter-chip').forEach(chip => {
+            const start = parseFloat(chip.dataset.start), end = parseFloat(chip.dataset.end);
+            const isActive = time >= start && time < end;
+            chip.classList.toggle('active', isActive);
+            if (isActive) chip.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+          });
+        });
+      }
     }
 
     function timeToSeconds(t) { const p = t.split(':').map(Number); return p.length === 3 ? p[0]*3600+p[1]*60+p[2] : p[0]*60+p[1]; }
