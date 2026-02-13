@@ -84,9 +84,11 @@
     .comment-main .text { font-size: 0.85rem; color: #ccc; line-height: 1.5; word-wrap: break-word; }
     .comment-main .meta { font-size: 0.75rem; color: #666; margin-top: 6px; display: flex; align-items: center; gap: 12px; }
 
-    /* Thread line — HIDDEN by default */
+    /* Thread line — connects parent avatar to replies when expanded */
     .comment-thread { position: relative; }
     .comment-thread .thread-line { display: none; }
+    /* When replies are open, draw a line from parent avatar down to the replies container */
+    .comment-thread.has-replies-open::before { content: ''; position: absolute; left: 18px; top: 48px; bottom: 4px; width: 2px; background: #333; z-index: 1; pointer-events: none; }
 
     /* Top "Show X replies" toggle — sits below the parent comment, indented to avatar center */
     .replies-toggle-top { appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.9rem; font-weight: 600; cursor: pointer; padding: 8px 12px; display: flex; align-items: center; gap: 6px; transition: background 0.15s; margin-top: 2px; margin-left: 48px; border-radius: 20px; }
@@ -96,7 +98,7 @@
     .replies-container { margin-left: 18px; display: none; position: relative; padding-bottom: 4px; }
     .replies-container.show { display: block; }
 
-    /* Clickable collapse line running down the left side of all replies */
+    /* Clickable collapse line inside the replies container */
     .replies-collapse-line { position: absolute; left: 0; top: 0; bottom: 0; width: 20px; cursor: pointer; z-index: 2; }
     .replies-collapse-line::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; border-radius: 1px; transition: background 0.15s; }
     .replies-collapse-line:hover::after { background: #888; }
@@ -491,6 +493,7 @@
 
           const collapseReplies = () => {
             repliesContainer.classList.remove('show');
+            thread.classList.remove('has-replies-open');
             topToggle.textContent = `Show ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}`;
             topToggle.style.display = '';
             bottomToggle.style.display = 'none';
@@ -498,6 +501,7 @@
 
           const expandReplies = async () => {
             repliesContainer.classList.add('show');
+            thread.classList.add('has-replies-open');
             topToggle.style.display = 'none';
             bottomToggle.style.display = '';
 
@@ -608,10 +612,10 @@
         wrapper.appendChild(el);
 
         if (subs.length > 0) {
-          // Sub-reply toggle sits inside the reply-wrapper as a tree item
-          const subToggle = document.createElement('button');
-          subToggle.className = 'subreply-toggle';
-          subToggle.textContent = subs.length === 1 ? 'Show Reply' : `Show ${subs.length} Replies`;
+          // Top toggle: "Show X Replies" — visible when collapsed
+          const subToggleTop = document.createElement('button');
+          subToggleTop.className = 'subreply-toggle';
+          subToggleTop.textContent = subs.length === 1 ? 'Show Reply' : `Show ${subs.length} Replies`;
 
           const subContainer = document.createElement('div');
           subContainer.className = 'subreplies-container';
@@ -619,15 +623,25 @@
           const subCollapseLine = document.createElement('div');
           subCollapseLine.className = 'subreplies-collapse-line';
 
-          const toggleSubs = () => {
-            const isOpen = subContainer.classList.contains('show');
-            subContainer.classList.toggle('show');
-            subToggle.textContent = isOpen
-              ? (subs.length === 1 ? 'Show Reply' : `Show ${subs.length} Replies`)
-              : (subs.length === 1 ? 'Hide Reply' : 'Hide Replies');
+          // Bottom toggle: "Hide Reply" — visible when expanded, sits at end of sub-container
+          const subToggleBottom = document.createElement('button');
+          subToggleBottom.className = 'subreply-toggle';
+          subToggleBottom.style.display = 'none';
+          subToggleBottom.textContent = subs.length === 1 ? 'Hide Reply' : 'Hide Replies';
+
+          const showSubs = () => {
+            subContainer.classList.add('show');
+            subToggleTop.style.display = 'none';
+            subToggleBottom.style.display = '';
+          };
+          const hideSubs = () => {
+            subContainer.classList.remove('show');
+            subToggleTop.style.display = '';
+            subToggleTop.textContent = subs.length === 1 ? 'Show Reply' : `Show ${subs.length} Replies`;
+            subToggleBottom.style.display = 'none';
           };
 
-          subCollapseLine.addEventListener('click', toggleSubs);
+          subCollapseLine.addEventListener('click', hideSubs);
           subContainer.appendChild(subCollapseLine);
 
           subs.forEach(sr => {
@@ -640,8 +654,12 @@
             subContainer.appendChild(subItem);
           });
 
-          subToggle.addEventListener('click', toggleSubs);
-          wrapper.appendChild(subToggle);
+          // Bottom toggle goes at the end of the sub-container
+          subContainer.appendChild(subToggleBottom);
+
+          subToggleTop.addEventListener('click', showSubs);
+          subToggleBottom.addEventListener('click', hideSubs);
+          wrapper.appendChild(subToggleTop);
           wrapper.appendChild(subContainer);
         }
 
@@ -690,6 +708,7 @@
 
           const collapseReplies = () => {
             repliesContainer.classList.remove('show');
+            thread.classList.remove('has-replies-open');
             topToggle.textContent = `Show ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}`;
             topToggle.style.display = '';
             bottomToggle.style.display = 'none';
@@ -697,6 +716,7 @@
 
           const expandReplies = async () => {
             repliesContainer.classList.add('show');
+            thread.classList.add('has-replies-open');
             topToggle.style.display = 'none';
             bottomToggle.style.display = '';
             if (!repliesContainer.querySelector('.reply-wrapper')) {
