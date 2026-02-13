@@ -84,25 +84,26 @@
     .comment-main .text { font-size: 0.85rem; color: #ccc; line-height: 1.5; word-wrap: break-word; }
     .comment-main .meta { font-size: 0.75rem; color: #666; margin-top: 6px; display: flex; align-items: center; gap: 12px; }
 
-    /* Thread line — HIDDEN by default, only visible when replies expanded */
+    /* Thread line — HIDDEN by default */
     .comment-thread { position: relative; }
     .comment-thread .thread-line { display: none; }
 
-    /* Replies toggle button — no arrow when collapsed, just "Show X replies" */
+    /* Replies toggle button */
     .replies-toggle { appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.85rem; font-weight: 600; cursor: pointer; padding: 6px 0; border-radius: 16px; display: flex; align-items: center; gap: 4px; transition: background 0.15s; margin-top: 2px; margin-left: 48px; }
     .replies-toggle:hover { background: rgba(147,179,230,0.08); padding: 6px 10px; margin-left: 38px; }
 
     /* Replies container */
-    .replies-container { margin-left: 18px; display: none; }
+    .replies-container { margin-left: 18px; display: none; position: relative; }
     .replies-container.show { display: block; }
 
-    /* Individual reply with curved L-shaped connector */
+    /* Clickable collapse line running down the left side of all replies */
+    .replies-collapse-line { position: absolute; left: 0; top: 0; bottom: 0; width: 12px; cursor: pointer; z-index: 2; }
+    .replies-collapse-line::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; border-radius: 2px; transition: background 0.15s; }
+    .replies-collapse-line:hover::after { background: #666; }
+
+    /* Individual reply with curved L-connector */
     .reply-wrapper { position: relative; padding-left: 30px; }
-    /* Vertical line continuing down to next reply */
-    .reply-wrapper::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; }
-    /* Last child: line only goes to the curve */
-    .reply-wrapper:last-child::before { bottom: auto; height: 22px; }
-    /* Curved L-connector */
+    /* Curved L-connector only (no vertical line — the collapse-line handles that) */
     .reply-wrapper::after { content: ''; position: absolute; left: 0; top: 14px; width: 20px; height: 10px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; border-top: none; border-right: none; }
     .reply-wrapper .comment-main { padding: 6px 0 8px; }
     .reply-wrapper .comment-main img { width: 28px; height: 28px; }
@@ -112,11 +113,12 @@
     .subreply-toggle:hover { background: rgba(147,179,230,0.08); padding: 3px 8px; margin-left: 22px; }
 
     /* Sub-replies nested under a specific reply */
-    .subreplies-container { margin-left: 0; display: none; }
+    .subreplies-container { margin-left: 0; display: none; position: relative; }
     .subreplies-container.show { display: block; }
+    .subreplies-collapse-line { position: absolute; left: 0; top: 0; bottom: 0; width: 12px; cursor: pointer; z-index: 2; }
+    .subreplies-collapse-line::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; border-radius: 2px; transition: background 0.15s; }
+    .subreplies-collapse-line:hover::after { background: #666; }
     .subreply-item { position: relative; padding-left: 30px; }
-    .subreply-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; }
-    .subreply-item:last-child::before { bottom: auto; height: 22px; }
     .subreply-item::after { content: ''; position: absolute; left: 0; top: 14px; width: 20px; height: 10px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; border-top: none; border-right: none; }
     .subreply-item .comment-main { padding: 4px 0 6px; }
     .subreply-item .comment-main img { width: 24px; height: 24px; }
@@ -460,61 +462,83 @@
         </div>`;
 
         if (c.replyCount > 0) {
-          html += `<button class="replies-toggle" data-comment-id="${c.id}" data-reply-count="${c.replyCount}">
+          html += `<button class="replies-toggle" data-comment-id="${c.id}">
             Show ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}
           </button>`;
           html += `<div class="replies-container" id="replies-${c.id}"></div>`;
+          html += `<button class="replies-toggle replies-toggle-bottom" data-comment-id="${c.id}" style="display:none;">
+            Hide replies
+          </button>`;
         }
 
         thread.innerHTML = html;
         container.appendChild(thread);
 
-        // Wire up replies toggle + thread line
         if (c.replyCount > 0) {
-          const toggleBtn = thread.querySelector('.replies-toggle');
+          const topToggle = thread.querySelectorAll('.replies-toggle')[0];
+          const bottomToggle = thread.querySelectorAll('.replies-toggle')[1];
           const repliesContainer = thread.querySelector('.replies-container');
 
-          const toggleReplies = async () => {
-            if (repliesContainer.classList.contains('show')) {
-              repliesContainer.classList.remove('show');
-              toggleBtn.textContent = `Show ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}`;
-              return;
-            }
-            repliesContainer.classList.add('show');
-            toggleBtn.textContent = `Hide replies`;
+          const collapseReplies = () => {
+            repliesContainer.classList.remove('show');
+            topToggle.textContent = `Show ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}`;
+            topToggle.style.display = '';
+            bottomToggle.style.display = 'none';
+          };
 
-            if (!repliesContainer.hasChildNodes()) {
-              toggleBtn.disabled = true;
-              toggleBtn.textContent = 'Loading...';
+          const expandReplies = async () => {
+            repliesContainer.classList.add('show');
+            topToggle.style.display = 'none';
+            bottomToggle.style.display = '';
+
+            if (!repliesContainer.querySelector('.reply-wrapper')) {
+              topToggle.style.display = '';
+              topToggle.disabled = true;
+              topToggle.textContent = 'Loading...';
+              bottomToggle.style.display = 'none';
               try {
                 const res = await fetch(`/api/video?id=${VIDEO_ID}&replies=${c.id}`);
                 const data = await res.json();
                 if (data.replies?.length) {
-                  buildReplyTree(data.replies, c.author, repliesContainer);
+                  buildReplyTree(data.replies, c.author, repliesContainer, collapseReplies);
                 }
               } catch (err) { console.error('Failed to load replies:', err); }
-              toggleBtn.disabled = false;
-              toggleBtn.textContent = 'Hide replies';
+              topToggle.disabled = false;
+              topToggle.style.display = 'none';
+              bottomToggle.style.display = '';
             }
           };
 
-          toggleBtn.addEventListener('click', toggleReplies);
+          topToggle.addEventListener('click', expandReplies);
+          bottomToggle.addEventListener('click', collapseReplies);
         }
       });
     }
 
-    // Build a threaded reply tree: direct replies get L-connectors,
-    // replies-to-replies get nested under the reply they mention with Show/Hide toggle
-    function buildReplyTree(replies, parentAuthor, container) {
-      // Extract @mention from start of each reply's HTML text
-      // YouTube textDisplay wraps mentions like: <a href="..." ...>@Username</a> text
+    // Build a threaded reply tree with @mention-based nesting
+    // Strips @mention from display text and nests under the mentioned person
+    function buildReplyTree(replies, parentAuthor, container, collapseParent) {
+      // Add a clickable collapse line running down the left side
+      const collapseLine = document.createElement('div');
+      collapseLine.className = 'replies-collapse-line';
+      collapseLine.addEventListener('click', collapseParent);
+      container.appendChild(collapseLine);
+
+      // Parse @mentions from each reply
       const parsed = replies.map(r => {
-        const mentionMatch = r.text.match(/^<a[^>]*>@([^<]+)<\/a>/);
-        const mentionedName = mentionMatch ? mentionMatch[1].trim() : null;
-        return { ...r, mentionedName };
+        // YouTube textDisplay: <a href="..." ...>@Username</a> rest of text
+        // or plain: @Username rest of text
+        const htmlMention = r.text.match(/^<a[^>]*>@([^<]+)<\/a>\s*/);
+        const plainMention = !htmlMention ? r.text.match(/^@([\w\s._-]+?)\s/) : null;
+        const mentionedName = htmlMention ? htmlMention[1].trim() : (plainMention ? plainMention[1].trim() : null);
+        // Strip the @mention from the displayed text
+        let cleanText = r.text;
+        if (htmlMention) cleanText = r.text.slice(htmlMention[0].length);
+        else if (plainMention) cleanText = r.text.slice(plainMention[0].length);
+        return { ...r, mentionedName, cleanText };
       });
 
-      // First pass: identify direct replies (to parent author or no mention)
+      // Separate direct replies vs sub-replies
       const directReplies = [];
       const pendingSubs = [];
 
@@ -526,16 +550,13 @@
         }
       });
 
-      // Second pass: attach sub-replies to the direct reply they mention
+      // Attach sub-replies to the direct reply they mention
       const subRepliesByAuthor = {};
       pendingSubs.forEach(r => {
-        const targetAuthor = r.mentionedName;
-        // Find the direct reply this is responding to
-        if (directReplies.some(dr => dr.author === targetAuthor)) {
-          if (!subRepliesByAuthor[targetAuthor]) subRepliesByAuthor[targetAuthor] = [];
-          subRepliesByAuthor[targetAuthor].push(r);
+        if (directReplies.some(dr => dr.author === r.mentionedName)) {
+          if (!subRepliesByAuthor[r.mentionedName]) subRepliesByAuthor[r.mentionedName] = [];
+          subRepliesByAuthor[r.mentionedName].push(r);
         } else {
-          // Mentioned someone not in direct replies — show as direct
           directReplies.push(r);
         }
       });
@@ -547,7 +568,7 @@
 
         const el = document.createElement('div');
         el.className = 'comment-main';
-        el.innerHTML = `<img src="${r.avatar}" alt="" /><div class="comment-body"><div class="author">${escHtml(r.author)}</div><div class="text">${r.text}</div><div class="meta"><span>${r.likes ? '👍 ' + r.likes : ''}</span><span>${timeAgo(r.date)}</span></div></div>`;
+        el.innerHTML = `<img src="${r.avatar}" alt="" /><div class="comment-body"><div class="author">${escHtml(r.author)}</div><div class="text">${r.cleanText}</div><div class="meta"><span>${r.likes ? '👍 ' + r.likes : ''}</span><span>${timeAgo(r.date)}</span></div></div>`;
         wrapper.appendChild(el);
 
         if (subs.length > 0) {
@@ -558,24 +579,33 @@
           const subContainer = document.createElement('div');
           subContainer.className = 'subreplies-container';
 
-          subs.forEach(sr => {
-            const subItem = document.createElement('div');
-            subItem.className = 'subreply-item';
-            const subEl = document.createElement('div');
-            subEl.className = 'comment-main';
-            subEl.innerHTML = `<img src="${sr.avatar}" alt="" /><div class="comment-body"><div class="author">${escHtml(sr.author)}</div><div class="text">${sr.text}</div><div class="meta"><span>${sr.likes ? '👍 ' + sr.likes : ''}</span><span>${timeAgo(sr.date)}</span></div></div>`;
-            subItem.appendChild(subEl);
-            subContainer.appendChild(subItem);
-          });
+          // Clickable collapse line for sub-replies
+          const subCollapseLine = document.createElement('div');
+          subCollapseLine.className = 'subreplies-collapse-line';
 
-          subToggle.addEventListener('click', () => {
+          const toggleSubs = () => {
             const isOpen = subContainer.classList.contains('show');
             subContainer.classList.toggle('show');
             subToggle.textContent = isOpen
               ? (subs.length === 1 ? 'Show Reply' : `Show ${subs.length} Replies`)
               : (subs.length === 1 ? 'Hide Reply' : 'Hide Replies');
+          };
+
+          subCollapseLine.addEventListener('click', toggleSubs);
+
+          subs.forEach(sr => {
+            const subItem = document.createElement('div');
+            subItem.className = 'subreply-item';
+            const subEl = document.createElement('div');
+            subEl.className = 'comment-main';
+            subEl.innerHTML = `<img src="${sr.avatar}" alt="" /><div class="comment-body"><div class="author">${escHtml(sr.author)}</div><div class="text">${sr.cleanText}</div><div class="meta"><span>${sr.likes ? '👍 ' + sr.likes : ''}</span><span>${timeAgo(sr.date)}</span></div></div>`;
+            subItem.appendChild(subEl);
+            subContainer.appendChild(subItem);
           });
 
+          subContainer.insertBefore(subCollapseLine, subContainer.firstChild);
+
+          subToggle.addEventListener('click', toggleSubs);
           wrapper.appendChild(subToggle);
           wrapper.appendChild(subContainer);
         }
@@ -605,36 +635,49 @@
             Show ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}
           </button>`;
           html += `<div class="replies-container" id="panel-replies-${c.id}" style="margin-left:40px;"></div>`;
+          html += `<button class="replies-toggle replies-toggle-bottom" data-comment-id="${c.id}" style="margin-left:40px;font-size:0.75rem;display:none;">
+            Hide replies
+          </button>`;
         }
         thread.innerHTML = html;
         container.appendChild(thread);
 
         if (c.replyCount > 0) {
-          const toggleBtn = thread.querySelector('.replies-toggle');
+          const topToggle = thread.querySelectorAll('.replies-toggle')[0];
+          const bottomToggle = thread.querySelectorAll('.replies-toggle')[1];
           const repliesContainer = thread.querySelector('.replies-container');
-          const toggleReplies = async () => {
-            if (repliesContainer.classList.contains('show')) {
-              repliesContainer.classList.remove('show');
-              toggleBtn.textContent = `Show ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}`;
-              return;
-            }
+
+          const collapseReplies = () => {
+            repliesContainer.classList.remove('show');
+            topToggle.textContent = `Show ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}`;
+            topToggle.style.display = '';
+            bottomToggle.style.display = 'none';
+          };
+
+          const expandReplies = async () => {
             repliesContainer.classList.add('show');
-            toggleBtn.textContent = 'Hide replies';
-            if (!repliesContainer.hasChildNodes()) {
-              toggleBtn.disabled = true;
-              toggleBtn.textContent = 'Loading...';
+            topToggle.style.display = 'none';
+            bottomToggle.style.display = '';
+            if (!repliesContainer.querySelector('.reply-wrapper')) {
+              topToggle.style.display = '';
+              topToggle.disabled = true;
+              topToggle.textContent = 'Loading...';
+              bottomToggle.style.display = 'none';
               try {
                 const res = await fetch(`/api/video?id=${VIDEO_ID}&replies=${c.id}`);
                 const data = await res.json();
                 if (data.replies?.length) {
-                  buildReplyTree(data.replies, c.author, repliesContainer);
+                  buildReplyTree(data.replies, c.author, repliesContainer, collapseReplies);
                 }
               } catch (err) { console.error(err); }
-              toggleBtn.disabled = false;
-              toggleBtn.textContent = 'Hide replies';
+              topToggle.disabled = false;
+              topToggle.style.display = 'none';
+              bottomToggle.style.display = '';
             }
           };
-          toggleBtn.addEventListener('click', toggleReplies);
+
+          topToggle.addEventListener('click', expandReplies);
+          bottomToggle.addEventListener('click', collapseReplies);
         }
       });
     }
