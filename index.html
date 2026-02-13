@@ -122,6 +122,8 @@
     .reply-wrapper .subreply-stem { display: none; position: absolute; left: 36px; top: 32px; width: 20px; cursor: pointer; z-index: 1; }
     .reply-wrapper .subreply-stem::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; transition: background 0.15s; }
     .reply-wrapper.has-subreplies-open .subreply-stem { display: block; }
+    /* Also show stem when collapsed (to connect "Show Reply" to avatar) */
+    .reply-wrapper.has-subreplies .subreply-stem { display: block; }
     /* Hover on sub-stem OR sub-collapse line highlights both */
     .reply-wrapper.subreply-hover .subreply-stem::after,
     .reply-wrapper.subreply-hover .subreplies-collapse-line::after { background: #888; }
@@ -136,6 +138,11 @@
     .subreply-toggle { position: relative; margin-left: 14px; padding-left: 22px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.88rem; font-weight: 600; cursor: pointer; padding-top: 4px; padding-bottom: 4px; display: flex; align-items: center; border-radius: 18px; transition: background 0.15s; }
     .subreply-toggle::after { content: ''; position: absolute; left: 0; top: 0; width: 14px; height: 14px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
     .subreply-toggle:hover { background: rgba(147,179,230,0.1); }
+
+    /* Bottom sub-toggle — inside subreplies-container (already indented), no extra margin */
+    .subreply-toggle-bottom { position: relative; padding-left: 22px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.88rem; font-weight: 600; cursor: pointer; padding-top: 4px; padding-bottom: 4px; display: flex; align-items: center; border-radius: 18px; transition: background 0.15s; }
+    .subreply-toggle-bottom::after { content: ''; position: absolute; left: 0; top: 0; width: 14px; height: 14px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
+    .subreply-toggle-bottom:hover { background: rgba(147,179,230,0.1); }
 
     /* Sub-replies nested under a specific reply */
     /* margin-left: 14px aligns the sub-collapse line (left:0) with reply avatar center */
@@ -664,6 +671,8 @@
           const subStem = document.createElement('div');
           subStem.className = 'subreply-stem';
           wrapper.appendChild(subStem);
+          // Always mark that this wrapper has sub-replies (stem always visible)
+          wrapper.classList.add('has-subreplies');
 
           // Top toggle: "Show X Replies" — visible when collapsed
           const subToggleTop = document.createElement('button');
@@ -677,23 +686,29 @@
           subCollapseLine.className = 'subreplies-collapse-line';
 
           // Bottom toggle: "Hide Reply" — visible when expanded, sits at end of sub-container
+          // Use subreply-toggle-bottom class (no extra margin) since it's inside the indented container
           const subToggleBottom = document.createElement('button');
-          subToggleBottom.className = 'subreply-toggle';
+          subToggleBottom.className = 'subreply-toggle-bottom';
           subToggleBottom.style.display = 'none';
           subToggleBottom.textContent = subs.length === 1 ? 'Hide Reply' : 'Hide Replies';
+
+          const updateSubStemHeight = () => {
+            requestAnimationFrame(() => {
+              const wrapperRect = wrapper.getBoundingClientRect();
+              // When expanded, stem reaches to sub-container; when collapsed, to the top toggle
+              const target = subContainer.classList.contains('show') ? subContainer : subToggleTop;
+              const targetRect = target.getBoundingClientRect();
+              const stemHeight = targetRect.top - wrapperRect.top - 32;
+              subStem.style.height = Math.max(0, stemHeight) + 'px';
+            });
+          };
 
           const showSubs = () => {
             subContainer.classList.add('show');
             wrapper.classList.add('has-subreplies-open');
             subToggleTop.style.display = 'none';
             subToggleBottom.style.display = '';
-            // Calculate sub-stem height
-            requestAnimationFrame(() => {
-              const wrapperRect = wrapper.getBoundingClientRect();
-              const subContainerRect = subContainer.getBoundingClientRect();
-              const stemHeight = subContainerRect.top - wrapperRect.top - 32;
-              subStem.style.height = Math.max(0, stemHeight) + 'px';
-            });
+            updateSubStemHeight();
           };
           const hideSubs = () => {
             subContainer.classList.remove('show');
@@ -701,6 +716,7 @@
             subToggleTop.style.display = '';
             subToggleTop.textContent = subs.length === 1 ? 'Show Reply' : `Show ${subs.length} Replies`;
             subToggleBottom.style.display = 'none';
+            updateSubStemHeight();
           };
 
           // Hover: highlight sub-stem + sub-collapse line together
@@ -732,6 +748,8 @@
           subToggleBottom.addEventListener('click', hideSubs);
           wrapper.appendChild(subToggleTop);
           wrapper.appendChild(subContainer);
+          // Initial stem height calculation (collapsed state — stem to "Show Reply")
+          requestAnimationFrame(() => updateSubStemHeight());
         }
 
         container.appendChild(wrapper);
