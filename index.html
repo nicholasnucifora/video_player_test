@@ -20,6 +20,9 @@
       display: flex;
       width: 100%;
       background: #000;
+      height: 100vh;
+      max-height: 100vh;
+      overflow: hidden;
     }
 
     .player-col {
@@ -30,21 +33,23 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
     }
 
     media-player {
       width: 100%;
-      max-height: 100vh;
+      height: 100%;
       display: block;
     }
 
-    /* Make sure the video itself doesn't crop */
+    /* Make sure the video itself doesn't crop — black bars instead */
     media-player video,
     media-player iframe {
       object-fit: contain !important;
     }
 
     /* ── Chapters side panel (YouTube-style) ── */
+    /* ── Chapters panel constrained to theatre row height ── */
     .chapters-panel {
       width: 0;
       overflow: hidden;
@@ -53,6 +58,7 @@
       transition: width 0.3s ease;
       display: flex;
       flex-direction: column;
+      height: 100%;
     }
 
     .chapters-panel.open {
@@ -132,6 +138,10 @@
     .chapter-info .chapter-time { font-size: 0.78rem; color: #888; font-variant-numeric: tabular-nums; }
 
     /* ── We intercept Vidstack's chapters button click to open our panel ── */
+    /* Kill Vidstack's chapters dropdown menu so it never opens */
+    .vds-chapters-menu-items,
+    .vds-chapters-radio-group,
+    media-menu-items[class*="chapter"] { display: none !important; height: 0 !important; overflow: hidden !important; pointer-events: none !important; }
 
     /* ── Below-player content ── */
     .below-player { max-width: 960px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
@@ -282,27 +292,27 @@
     </div>
 
     <!-- Fullscreen scroll content -->
-    <div class="fs-content">
-      <div class="video-info" id="videoInfo">
-        <div class="video-title" id="videoTitle">Loading...</div>
-        <div class="channel-row" id="channelRow" style="display:none;">
-          <img id="channelAvatar" src="" alt="Channel avatar" />
-          <span class="channel-name" id="channelName"></span>
-        </div>
-        <div class="description-box" id="descBox">
-          <div class="desc-preview" id="descText"></div>
-          <div class="desc-toggle" id="descToggle">Show more</div>
-        </div>
-      </div>
-      <div class="comments-section">
-        <h2 id="commentsHeading">Comments</h2>
-        <div id="commentsList"></div>
-      </div>
-    </div>
+    <div class="fs-content"></div>
     <div class="scroll-hint" id="scrollHint">↓ Scroll for comments</div>
   </div>
 
+  <!-- Below player: video info, comments (always visible) -->
   <div class="below-player">
+    <div class="video-info" id="videoInfo">
+      <div class="video-title" id="videoTitle">Loading...</div>
+      <div class="channel-row" id="channelRow" style="display:none;">
+        <img id="channelAvatar" src="" alt="Channel avatar" />
+        <span class="channel-name" id="channelName"></span>
+      </div>
+      <div class="description-box" id="descBox">
+        <div class="desc-preview" id="descText"></div>
+        <div class="desc-toggle" id="descToggle">Show more</div>
+      </div>
+    </div>
+    <div class="comments-section">
+      <h2 id="commentsHeading">Comments</h2>
+      <div id="commentsList"></div>
+    </div>
   </div>
 
   <script type="module" src="https://cdn.vidstack.io/player"></script>
@@ -507,41 +517,53 @@
     }
 
     function interceptChaptersButton() {
-      // Intercept clicks on Vidstack's native chapters button to open our side panel instead
       customElements.whenDefined('media-player').then(() => {
         const player = document.querySelector('media-player');
 
-        // Use a MutationObserver to catch when Vidstack renders its controls
-        const observer = new MutationObserver(() => {
-          // Look for the chapters menu or button in Vidstack's shadow DOM / light DOM
-          const chapBtn = player.querySelector('.vds-chapters-menu-button, [data-media-button="chapters"], media-menu-button');
-          if (!chapBtn) return;
+        // Poll until Vidstack renders its controls (more reliable than MutationObserver)
+        const poll = setInterval(() => {
+          const menus = player.querySelectorAll('media-menu');
+          if (!menus.length) return;
 
-          // Find all menu buttons — the chapters one typically has a specific icon
-          const menuButtons = player.querySelectorAll('media-menu');
-          menuButtons.forEach(menu => {
+          menus.forEach(menu => {
+            // Check if this is the chapters menu
+            const items = menu.querySelector('[class*="chapter"]');
+            if (!items) return;
+
             const btn = menu.querySelector('media-menu-button');
-            if (!btn) return;
+            if (!btn || btn._intercepted) return;
+            btn._intercepted = true;
 
-            // Check if this menu contains chapter items
-            const hasChapters = menu.querySelector('.vds-chapters-menu-items, .vds-chapter-radio-group, [class*="chapter"]');
-            if (hasChapters) {
-              // Prevent the default menu from opening, open our panel instead
-              btn.addEventListener('click', (e) => {
+            // Capture phase listener to intercept before Vidstack handles it
+            btn.addEventListener('pointerup', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+              toggleChaptersPanel();
+            }, true);
+
+            btn.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+              // Force close the menu if it somehow opened
+              menu.removeAttribute('open');
+              menu.removeAttribute('data-open');
+            }, true);
+
+            // Also prevent keyboard activation
+            btn.addEventListener('keydown', (e) => {
+              if (e.code === 'Enter' || e.code === 'Space') {
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
-                // Close any open Vidstack menus
-                menu.removeAttribute('open');
                 toggleChaptersPanel();
-              }, true);
-            }
+              }
+            }, true);
           });
 
-          observer.disconnect();
-        });
-
-        observer.observe(player, { childList: true, subtree: true });
+          clearInterval(poll);
+        }, 200);
       });
     }
 
