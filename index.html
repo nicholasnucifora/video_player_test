@@ -46,8 +46,8 @@
     .chapter-item.active .chapter-time { color: #3b82f6; }
     .chapter-thumb { width: 160px; height: 90px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: #333; }
     .chapter-info { flex: 1; min-width: 0; }
-    .chapter-info .chapter-label { font-size: 1.1rem; font-weight: 500; color: #eee; line-height: 1.4; margin-bottom: 6px; }
-    .chapter-info .chapter-time { font-size: 1rem; color: #888; font-variant-numeric: tabular-nums; }
+    .chapter-info .chapter-label { font-size: 1.2rem; font-weight: 500; color: #eee; line-height: 1.4; margin-bottom: 6px; }
+    .chapter-info .chapter-time { font-size: 1.1rem; color: #888; font-variant-numeric: tabular-nums; }
 
     /* ── Kill only Vidstack's chapters DROPDOWN (keep the button itself visible) ── */
     .vds-chapters-menu-items, .vds-chapters-radio-group, media-menu-items[class*="chapter"] { display: none !important; height: 0 !important; overflow: hidden !important; pointer-events: none !important; }
@@ -66,25 +66,31 @@
 
     /* ── Video info ── */
     .video-info { margin-bottom: 2rem; }
-    .video-info .video-title { font-size: 1.6rem; font-weight: 600; margin-bottom: 1rem; line-height: 1.4; }
-    .channel-row { display: flex; align-items: center; gap: 14px; margin-bottom: 1.25rem; }
-    .channel-row img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
-    .channel-row .channel-name { font-weight: 600; font-size: 1.1rem; }
+    .video-info .video-title { font-size: 2rem; font-weight: 600; margin-bottom: 1rem; line-height: 1.35; }
+    .channel-row { display: flex; align-items: center; gap: 16px; margin-bottom: 1.25rem; }
+    .channel-row img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; }
+    .channel-row .channel-name { font-weight: 600; font-size: 1.3rem; }
     .description-box { background: #1a1a1a; border-radius: 12px; padding: 1rem 1.25rem; cursor: pointer; transition: background 0.15s; }
     .description-box:hover { background: #222; }
-    .description-box .desc-preview { font-size: 1rem; color: #aaa; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .description-box .desc-preview { font-size: 1.15rem; color: #aaa; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .description-box.expanded .desc-preview { -webkit-line-clamp: unset; white-space: pre-wrap; }
-    .description-box .desc-toggle { font-size: 0.95rem; color: #888; margin-top: 6px; }
+    .description-box .desc-toggle { font-size: 1.05rem; color: #888; margin-top: 6px; }
 
     /* ── Comments with thread lines ── */
-    .comments-section h2 { font-size: 1.4rem; margin-bottom: 1.25rem; font-weight: 600; }
+    .comments-section h2 { font-size: 1.6rem; margin-bottom: 1.25rem; font-weight: 600; }
     .comment-thread { position: relative; padding-left: 0; }
-    .comment-main { display: flex; gap: 14px; padding: 14px 0; }
-    .comment-main img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .comment-main { display: flex; gap: 16px; padding: 14px 0; }
+    .comment-main img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
     .comment-main .comment-body { flex: 1; min-width: 0; }
-    .comment-main .author { font-weight: 600; font-size: 1rem; margin-bottom: 3px; color: #eee; }
-    .comment-main .text { font-size: 1rem; color: #ccc; line-height: 1.6; word-wrap: break-word; }
-    .comment-main .meta { font-size: 0.9rem; color: #666; margin-top: 8px; display: flex; align-items: center; gap: 12px; }
+    .comment-main .author { font-weight: 600; font-size: 1.15rem; margin-bottom: 4px; color: #eee; }
+    .comment-main .text { font-size: 1.15rem; color: #ccc; line-height: 1.6; word-wrap: break-word; }
+    .comment-main .meta { font-size: 1rem; color: #666; margin-top: 8px; display: flex; align-items: center; gap: 14px; }
+
+    /* Comment text truncation — 5 lines max, expandable */
+    .comment-main .text.truncated { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+    .comment-main .text.truncated.expanded { -webkit-line-clamp: unset; }
+    .read-more-btn { appearance: none; border: none; background: none; color: #aaa; font-size: 1rem; font-weight: 500; cursor: pointer; padding: 4px 0; margin-top: 4px; transition: color 0.15s; }
+    .read-more-btn:hover { color: #fff; }
 
     /* Thread line — connects parent avatar to replies when expanded */
     .comment-thread { position: relative; }
@@ -92,7 +98,7 @@
 
     /* Stem line from parent avatar down to replies — real DOM element for hover interaction */
     /* Height is set dynamically via JS to reach exactly to the replies container top */
-    .thread-stem { display: none; position: absolute; left: 22px; top: 56px; width: 20px; cursor: pointer; z-index: 1; }
+    .thread-stem { display: none; position: absolute; left: 24px; top: 58px; width: 20px; cursor: pointer; z-index: 1; }
     .thread-stem::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; transition: background 0.15s; }
     .comment-thread.has-replies-open .thread-stem { display: block; }
     /* Also show stem when collapsed (to connect "Show X replies" to avatar) */
@@ -105,12 +111,12 @@
     .comment-thread.thread-hover .replies-toggle-bottom::after { border-color: #888; }
 
     /* Top "Show X replies" toggle — tree item with L-curve from the stem */
-    .replies-toggle-top { position: relative; appearance: none; border: none; background: none; color: #93b3e6; font-size: 1rem; font-weight: 600; cursor: pointer; padding: 8px 12px 8px 22px; display: flex; align-items: center; gap: 6px; transition: background 0.15s; margin-top: 2px; margin-left: 22px; border-radius: 20px; }
+    .replies-toggle-top { position: relative; appearance: none; border: none; background: none; color: #93b3e6; font-size: 1.1rem; font-weight: 600; cursor: pointer; padding: 8px 12px 8px 22px; display: flex; align-items: center; gap: 6px; transition: background 0.15s; margin-top: 2px; margin-left: 24px; border-radius: 20px; }
     .replies-toggle-top::after { content: ''; position: absolute; left: 0; top: 2px; width: 14px; height: 16px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
     .replies-toggle-top:hover { background: rgba(147,179,230,0.1); }
 
     /* Replies container — indented so the collapse line aligns under parent avatar center */
-    .replies-container { margin-left: 22px; display: none; position: relative; }
+    .replies-container { margin-left: 24px; display: none; position: relative; }
     .replies-container.show { display: block; }
 
     /* Clickable collapse line inside the replies container — stops before bottom toggle via bottom offset */
@@ -121,13 +127,13 @@
     .reply-wrapper { position: relative; padding-left: 22px; min-height: 32px; }
     .reply-wrapper::after { content: ''; position: absolute; left: 0; top: 0; width: 14px; height: 18px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
     .reply-wrapper .comment-main { padding: 4px 0 8px; }
-    .reply-wrapper .comment-main img { width: 32px; height: 32px; }
+    .reply-wrapper .comment-main img { width: 36px; height: 36px; }
 
     /* Sub-thread stem — connects reply avatar down to sub-replies when expanded */
     /* Height set dynamically via JS */
     /* Sub-thread stem — connects reply avatar down to sub-replies when expanded */
     /* left = padding-left (22px) + half avatar (14px) = 36px from wrapper edge = aligned with reply avatar center */
-    .reply-wrapper .subreply-stem { display: none; position: absolute; left: 38px; top: 36px; width: 20px; cursor: pointer; z-index: 1; }
+    .reply-wrapper .subreply-stem { display: none; position: absolute; left: 40px; top: 38px; width: 20px; cursor: pointer; z-index: 1; }
     .reply-wrapper .subreply-stem::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; transition: background 0.15s; }
     .reply-wrapper.has-subreplies-open .subreply-stem { display: block; }
     /* Also show stem when collapsed (to connect "Show Reply" to avatar) */
@@ -140,24 +146,24 @@
     .reply-wrapper.subreply-hover .subreply-item::after { border-color: #888; }
 
     /* Bottom "Hide replies" toggle — last item in the tree, gets its own L-curve */
-    .replies-toggle-bottom { position: relative; padding-left: 22px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 1rem; font-weight: 600; cursor: pointer; padding-top: 4px; padding-bottom: 8px; display: flex; align-items: center; border-radius: 20px; transition: background 0.15s; }
+    .replies-toggle-bottom { position: relative; padding-left: 22px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 1.1rem; font-weight: 600; cursor: pointer; padding-top: 4px; padding-bottom: 8px; display: flex; align-items: center; border-radius: 20px; transition: background 0.15s; }
     .replies-toggle-bottom::after { content: ''; position: absolute; left: 0; top: 0; width: 14px; height: 14px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
     .replies-toggle-bottom:hover { background: rgba(147,179,230,0.1); }
 
     /* Sub-reply show/hide toggle — indented to align L-curve with reply avatar center */
     /* margin-left: 14px puts the toggle's left:0 at 22+14=36px from wrapper = avatar center */
-    .subreply-toggle { position: relative; margin-left: 16px; padding-left: 22px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 1rem; font-weight: 600; cursor: pointer; padding-top: 4px; padding-bottom: 4px; display: flex; align-items: center; border-radius: 18px; transition: background 0.15s; }
+    .subreply-toggle { position: relative; margin-left: 18px; padding-left: 22px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 1.1rem; font-weight: 600; cursor: pointer; padding-top: 4px; padding-bottom: 4px; display: flex; align-items: center; border-radius: 18px; transition: background 0.15s; }
     .subreply-toggle::after { content: ''; position: absolute; left: 0; top: 0; width: 14px; height: 14px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
     .subreply-toggle:hover { background: rgba(147,179,230,0.1); }
 
     /* Bottom sub-toggle — inside subreplies-container (already indented), no extra margin */
-    .subreply-toggle-bottom { position: relative; padding-left: 22px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 1rem; font-weight: 600; cursor: pointer; padding-top: 4px; padding-bottom: 4px; display: flex; align-items: center; border-radius: 18px; transition: background 0.15s; }
+    .subreply-toggle-bottom { position: relative; padding-left: 22px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 1.1rem; font-weight: 600; cursor: pointer; padding-top: 4px; padding-bottom: 4px; display: flex; align-items: center; border-radius: 18px; transition: background 0.15s; }
     .subreply-toggle-bottom::after { content: ''; position: absolute; left: 0; top: 0; width: 14px; height: 14px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
     .subreply-toggle-bottom:hover { background: rgba(147,179,230,0.1); }
 
     /* Sub-replies nested under a specific reply */
     /* margin-left: 14px aligns the sub-collapse line (left:0) with reply avatar center */
-    .subreplies-container { margin-left: 16px; display: none; position: relative; }
+    .subreplies-container { margin-left: 18px; display: none; position: relative; }
     .subreplies-container.show { display: block; }
     /* Sub-collapse line stops before the bottom sub-toggle */
     .subreplies-collapse-line { position: absolute; left: 0; top: 0; bottom: 20px; width: 20px; cursor: pointer; z-index: 2; }
@@ -165,7 +171,7 @@
     .subreply-item { position: relative; padding-left: 22px; }
     .subreply-item::after { content: ''; position: absolute; left: 0; top: 0; width: 14px; height: 16px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
     .subreply-item .comment-main { padding: 4px 0 6px; }
-    .subreply-item .comment-main img { width: 28px; height: 28px; }
+    .subreply-item .comment-main img { width: 32px; height: 32px; }
 
     /* Reply @mention highlight */
     .reply-mention { color: #93b3e6; font-weight: 600; }
@@ -233,12 +239,18 @@
     .mobile-play-btn.show { opacity: 1; pointer-events: auto; display: flex; }
 
     /* ── Side panel comments ── */
-    .panel-comment { display: flex; gap: 10px; padding: 10px 16px; }
-    .panel-comment img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-    .panel-comment .comment-body { flex: 1; min-width: 0; }
-    .panel-comment .author { font-weight: 600; font-size: 0.8rem; margin-bottom: 2px; }
-    .panel-comment .text { font-size: 0.8rem; color: #ccc; line-height: 1.4; word-wrap: break-word; }
-    .panel-comment .meta { font-size: 0.7rem; color: #666; margin-top: 4px; }
+    .panel-thread { padding: 0 16px; }
+    .panel-thread .comment-main img { width: 36px; height: 36px; }
+    .panel-thread .comment-main .author { font-size: 1rem; }
+    .panel-thread .comment-main .text { font-size: 1rem; }
+    .panel-thread .comment-main .meta { font-size: 0.9rem; }
+    .panel-thread .reply-wrapper .comment-main img { width: 28px; height: 28px; }
+    .panel-thread .subreply-item .comment-main img { width: 24px; height: 24px; }
+    .panel-thread .replies-toggle-top,
+    .panel-thread .replies-toggle-bottom,
+    .panel-thread .subreply-toggle,
+    .panel-thread .subreply-toggle-bottom { font-size: 0.95rem; }
+    .panel-thread .read-more-btn { font-size: 0.9rem; }
 
     /* ── Responsive ── */
     @media (max-width: 768px) {
@@ -504,7 +516,7 @@
           <img src="${c.avatar}" alt="" />
           <div class="comment-body">
             <div class="author">${escHtml(c.author)}</div>
-            <div class="text">${c.text}</div>
+            <div class="text truncated">${c.text}</div>
             <div class="meta">
               <span>${c.likes ? '👍 ' + c.likes : ''}</span>
               <span>${timeAgo(c.date)}</span>
@@ -522,6 +534,20 @@
 
         thread.innerHTML = html;
         container.appendChild(thread);
+
+        // Add "Read more" if text is truncated
+        const textEl = thread.querySelector('.comment-main .text');
+        if (textEl && textEl.scrollHeight > textEl.clientHeight + 2) {
+          const btn = document.createElement('button');
+          btn.className = 'read-more-btn';
+          btn.textContent = 'Read more';
+          btn.addEventListener('click', () => {
+            const isExpanded = textEl.classList.contains('expanded');
+            textEl.classList.toggle('expanded');
+            btn.textContent = isExpanded ? 'Read more' : 'Show less';
+          });
+          textEl.parentNode.insertBefore(btn, textEl.nextSibling);
+        }
 
         if (c.replyCount > 0) {
           const topToggle = thread.querySelector('.replies-toggle-top');
@@ -558,7 +584,7 @@
               // When expanded, stem reaches to the replies container; when collapsed, to the top toggle
               const target = repliesContainer.classList.contains('show') ? repliesContainer : topToggle;
               const targetRect = target.getBoundingClientRect();
-              const stemHeight = targetRect.top - threadRect.top - 56 + 4;
+              const stemHeight = targetRect.top - threadRect.top - 58 + 4;
               threadStem.style.height = Math.max(0, stemHeight) + 'px';
             });
           };
@@ -687,8 +713,19 @@
 
         const el = document.createElement('div');
         el.className = 'comment-main';
-        el.innerHTML = `<img src="${r.avatar}" alt="" /><div class="comment-body"><div class="author">${escHtml(r.author)}</div><div class="text">${r.cleanText}</div><div class="meta"><span>${r.likes ? '👍 ' + r.likes : ''}</span><span>${timeAgo(r.date)}</span></div></div>`;
+        el.innerHTML = `<img src="${r.avatar}" alt="" /><div class="comment-body"><div class="author">${escHtml(r.author)}</div><div class="text truncated">${r.cleanText}</div><div class="meta"><span>${r.likes ? '👍 ' + r.likes : ''}</span><span>${timeAgo(r.date)}</span></div></div>`;
         wrapper.appendChild(el);
+        // Add "Read more" for long replies
+        requestAnimationFrame(() => {
+          const textEl = el.querySelector('.text');
+          if (textEl && textEl.scrollHeight > textEl.clientHeight + 2) {
+            const btn = document.createElement('button');
+            btn.className = 'read-more-btn';
+            btn.textContent = 'Read more';
+            btn.addEventListener('click', () => { textEl.classList.toggle('expanded'); btn.textContent = textEl.classList.contains('expanded') ? 'Show less' : 'Read more'; });
+            textEl.parentNode.insertBefore(btn, textEl.nextSibling);
+          }
+        });
 
         if (subs.length > 0) {
           // Stem line from this reply's avatar down to sub-replies
@@ -722,7 +759,7 @@
               // When expanded, stem reaches to sub-container; when collapsed, to the top toggle
               const target = subContainer.classList.contains('show') ? subContainer : subToggleTop;
               const targetRect = target.getBoundingClientRect();
-              const stemHeight = targetRect.top - wrapperRect.top - 36 + 4;
+              const stemHeight = targetRect.top - wrapperRect.top - 38 + 4;
               subStem.style.height = Math.max(0, stemHeight) + 'px';
             });
           };
@@ -763,9 +800,20 @@
             subItem.className = 'subreply-item';
             const subEl = document.createElement('div');
             subEl.className = 'comment-main';
-            subEl.innerHTML = `<img src="${sr.avatar}" alt="" /><div class="comment-body"><div class="author">${escHtml(sr.author)}</div><div class="text">${sr.cleanText}</div><div class="meta"><span>${sr.likes ? '👍 ' + sr.likes : ''}</span><span>${timeAgo(sr.date)}</span></div></div>`;
+            subEl.innerHTML = `<img src="${sr.avatar}" alt="" /><div class="comment-body"><div class="author">${escHtml(sr.author)}</div><div class="text truncated">${sr.cleanText}</div><div class="meta"><span>${sr.likes ? '👍 ' + sr.likes : ''}</span><span>${timeAgo(sr.date)}</span></div></div>`;
             subItem.appendChild(subEl);
             subContainer.appendChild(subItem);
+            // Add "Read more" for long sub-replies
+            requestAnimationFrame(() => {
+              const textEl = subEl.querySelector('.text');
+              if (textEl && textEl.scrollHeight > textEl.clientHeight + 2) {
+                const btn = document.createElement('button');
+                btn.className = 'read-more-btn';
+                btn.textContent = 'Read more';
+                btn.addEventListener('click', () => { textEl.classList.toggle('expanded'); btn.textContent = textEl.classList.contains('expanded') ? 'Show less' : 'Read more'; });
+                textEl.parentNode.insertBefore(btn, textEl.nextSibling);
+              }
+            });
           });
 
           // Bottom toggle goes at the end of the sub-container
@@ -790,28 +838,41 @@
     function populatePanelComments() {
       const container = document.getElementById('panelComments');
       container.innerHTML = '';
-      // Reuse the same comment rendering for the side panel
+      // Reuse the same comment rendering — panel uses slightly smaller sizes via panel-specific CSS
       allComments.forEach(c => {
         const thread = document.createElement('div');
-        thread.className = 'comment-thread';
-        thread.style.padding = '0 16px';
+        thread.className = 'comment-thread panel-thread';
         let html = `<div class="comment-main">
-          <img src="${c.avatar}" alt="" style="width:28px;height:28px;" />
+          <img src="${c.avatar}" alt="" />
           <div class="comment-body">
-            <div class="author" style="font-size:0.8rem;">${escHtml(c.author)}</div>
-            <div class="text" style="font-size:0.8rem;">${c.text}</div>
+            <div class="author">${escHtml(c.author)}</div>
+            <div class="text truncated">${c.text}</div>
             <div class="meta">${c.likes ? '👍 ' + c.likes + ' · ' : ''}${timeAgo(c.date)}</div>
           </div>
         </div>`;
         if (c.replyCount > 0) {
-          html += `<div class="thread-stem" style="left:14px;top:36px;"></div>`;
-          html += `<button class="replies-toggle-top" data-comment-id="${c.id}" style="margin-left:14px;font-size:0.75rem;">
+          html += `<div class="thread-stem"></div>`;
+          html += `<button class="replies-toggle-top" data-comment-id="${c.id}">
             Show ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}
           </button>`;
-          html += `<div class="replies-container" id="panel-replies-${c.id}" style="margin-left:14px;"></div>`;
+          html += `<div class="replies-container" id="panel-replies-${c.id}"></div>`;
         }
         thread.innerHTML = html;
         container.appendChild(thread);
+
+        // Add "Read more" for truncated panel comments
+        const textEl = thread.querySelector('.comment-main .text');
+        if (textEl) {
+          requestAnimationFrame(() => {
+            if (textEl.scrollHeight > textEl.clientHeight + 2) {
+              const btn = document.createElement('button');
+              btn.className = 'read-more-btn';
+              btn.textContent = 'Read more';
+              btn.addEventListener('click', () => { textEl.classList.toggle('expanded'); btn.textContent = textEl.classList.contains('expanded') ? 'Show less' : 'Read more'; });
+              textEl.parentNode.insertBefore(btn, textEl.nextSibling);
+            }
+          });
+        }
 
         if (c.replyCount > 0) {
           const topToggle = thread.querySelector('.replies-toggle-top');
@@ -822,7 +883,7 @@
           bottomToggle.className = 'replies-toggle-bottom';
           bottomToggle.dataset.commentId = c.id;
           bottomToggle.textContent = 'Hide replies';
-          bottomToggle.style.cssText = 'font-size:0.75rem;display:none;';
+          bottomToggle.style.display = 'none';
           repliesContainer.appendChild(bottomToggle);
 
           // Hover wiring
@@ -841,7 +902,7 @@
               const threadRect = thread.getBoundingClientRect();
               const target = repliesContainer.classList.contains('show') ? repliesContainer : topToggle;
               const targetRect = target.getBoundingClientRect();
-              const stemHeight = targetRect.top - threadRect.top - 36 + 4;
+              const stemHeight = targetRect.top - threadRect.top - 58 + 4;
               threadStem.style.height = Math.max(0, stemHeight) + 'px';
             });
           };
