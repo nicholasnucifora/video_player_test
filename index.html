@@ -518,47 +518,41 @@
     // Build a threaded reply tree with @mention-based nesting
     // Strips @mention from display text and nests under the mentioned person
     function buildReplyTree(replies, parentAuthor, container, collapseParent) {
-      // DEBUG: Show raw data so we can see what YouTube returns
-      const debugEl = document.createElement('details');
-      debugEl.style.cssText = 'margin:8px 0;padding:8px;background:#1a1a1a;border:1px solid #333;border-radius:6px;font-size:11px;color:#888;';
-      debugEl.innerHTML = `<summary style="cursor:pointer;color:#93b3e6;">🔍 Debug: raw reply data (click to expand)</summary><pre style="white-space:pre-wrap;margin-top:8px;max-height:300px;overflow:auto;">${escHtml(JSON.stringify(replies.map(r => ({ author: r.author, textOriginal: r.textOriginal, textStart: r.text.substring(0, 120) })), null, 2))}</pre><p style="margin-top:6px;">Parent author: "${escHtml(parentAuthor)}"</p>`;
-      container.appendChild(debugEl);
-
       // Add a clickable collapse line running down the left side
       const collapseLine = document.createElement('div');
       collapseLine.className = 'replies-collapse-line';
       collapseLine.addEventListener('click', collapseParent);
       container.appendChild(collapseLine);
 
-      // Normalize name for fuzzy matching (YouTube @handles vs display names differ)
-      const norm = s => s.toLowerCase().replace(/[\s._-]/g, '');
+      // YouTube data: author names have @ prefix like "@oracleofwater"
+      // textOriginal may start with "@username " (sometimes with zero-width chars before it)
+      // Normalize: lowercase, strip @, strip zero-width chars
+      const norm = s => s.toLowerCase().replace(/^@/, '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
 
-      // Parse @mentions from each reply using textOriginal (plain text, reliable)
-      // but display using text (HTML with formatting)
       const parsed = replies.map(r => {
-        const orig = r.textOriginal || '';
-        let mentionedName = null;
+        const orig = (r.textOriginal || '').replace(/^[\u200B-\u200D\uFEFF]+/, ''); // strip zero-width prefix
+        let mentionedHandle = null;
         let cleanText = r.text;
-        
-        // Parse @mention from plain text original
-        const plainMatch = orig.match(/^@(\S+)\s*/);
-        if (plainMatch) {
-          mentionedName = plainMatch[1].trim();
-          // Strip the @mention from the HTML display text too
-          // It could be wrapped in <a>, <b>, or plain
+
+        // textOriginal starts with @handle then space
+        const m = orig.match(/^@(\S+)\s+/);
+        if (m) {
+          mentionedHandle = m[1]; // e.g. "oracleofwater" or "boohoo5419"
+          // Strip the @mention from HTML display text (could be <a> wrapped, plain, or with zero-width chars)
           cleanText = r.text
+            .replace(/^[\u200B-\u200D\uFEFF]*/, '')
             .replace(/^<a[^>]*>@[^<]*<\/a>\s*/, '')
-            .replace(/^<b>@[^<]*<\/b>\s*/, '')
             .replace(/^@\S+\s*/, '');
         }
-        
-        return { ...r, mentionedName, cleanText };
+
+        return { ...r, mentionedHandle, cleanText };
       });
 
-      // Check if a mentioned name matches a given author (fuzzy)
-      const nameMatches = (mention, author) => {
-        if (!mention || !author) return false;
-        return norm(mention) === norm(author);
+      // Match a mentioned handle against an author name
+      // Author: "@oracleofwater", handle from mention: "oracleofwater"
+      const handleMatches = (handle, author) => {
+        if (!handle || !author) return false;
+        return norm(handle) === norm(author);
       };
 
       // Separate: direct replies (to parent or no mention) vs sub-replies
@@ -566,7 +560,7 @@
       const pendingSubs = [];
 
       parsed.forEach(r => {
-        if (!r.mentionedName || nameMatches(r.mentionedName, parentAuthor)) {
+        if (!r.mentionedHandle || handleMatches(r.mentionedHandle, parentAuthor)) {
           directReplies.push(r);
         } else {
           pendingSubs.push(r);
@@ -574,14 +568,21 @@
       });
 
       // Attach sub-replies to the direct reply they mention
+      // Use index-based mapping since the same author could appear multiple times
       const subRepliesByIdx = {};
       pendingSubs.forEach(r => {
-        const targetIdx = directReplies.findIndex(dr => nameMatches(r.mentionedName, dr.author));
+        // Search backwards — the 5th comment replying to the 2nd should find the 2nd
+        let targetIdx = -1;
+        for (let i = directReplies.length - 1; i >= 0; i--) {
+          if (handleMatches(r.mentionedHandle, directReplies[i].author)) {
+            targetIdx = i;
+            break;
+          }
+        }
         if (targetIdx >= 0) {
           if (!subRepliesByIdx[targetIdx]) subRepliesByIdx[targetIdx] = [];
           subRepliesByIdx[targetIdx].push(r);
         } else {
-          // Can't find target, show as direct reply
           directReplies.push(r);
         }
       });
@@ -604,7 +605,6 @@
           const subContainer = document.createElement('div');
           subContainer.className = 'subreplies-container';
 
-          // Clickable collapse line for sub-replies
           const subCollapseLine = document.createElement('div');
           subCollapseLine.className = 'subreplies-collapse-line';
 
