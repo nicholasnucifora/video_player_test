@@ -93,6 +93,8 @@
     .thread-stem { display: none; position: absolute; left: 18px; top: 48px; width: 20px; cursor: pointer; z-index: 1; }
     .thread-stem::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; transition: background 0.15s; }
     .comment-thread.has-replies-open .thread-stem { display: block; }
+    /* Also show stem when collapsed (to connect "Show X replies" to avatar) */
+    .comment-thread.has-replies .thread-stem { display: block; }
     /* Hover on stem OR collapse line highlights both via parent class */
     .comment-thread.thread-hover .thread-stem::after,
     .comment-thread.thread-hover .replies-collapse-line::after { background: #888; }
@@ -509,6 +511,8 @@
           const topToggle = thread.querySelector('.replies-toggle-top');
           const repliesContainer = thread.querySelector('.replies-container');
           const threadStem = thread.querySelector('.thread-stem');
+          // Mark thread as having replies (stem always visible)
+          thread.classList.add('has-replies');
           // Bottom toggle lives INSIDE the replies-container (appended after tree is built)
           const bottomToggle = document.createElement('button');
           bottomToggle.className = 'replies-toggle-bottom';
@@ -522,12 +526,6 @@
           const hoverOff = () => thread.classList.remove('thread-hover');
           threadStem.addEventListener('mouseenter', hoverOn);
           threadStem.addEventListener('mouseleave', hoverOff);
-          // Collapse line hover wired in buildReplyTree via collapseParent's thread ref
-
-          // Click stem to collapse
-          threadStem.addEventListener('click', () => {
-            if (repliesContainer.classList.contains('show')) collapseReplies();
-          });
 
           const collapseReplies = () => {
             repliesContainer.classList.remove('show');
@@ -535,17 +533,25 @@
             topToggle.textContent = `Show ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}`;
             topToggle.style.display = '';
             bottomToggle.style.display = 'none';
+            updateStemHeight();
           };
 
           const updateStemHeight = () => {
             requestAnimationFrame(() => {
               const threadRect = thread.getBoundingClientRect();
-              const containerRect = repliesContainer.getBoundingClientRect();
-              // Stem goes from top:48px down to the top of the replies container
-              const stemHeight = containerRect.top - threadRect.top - 48;
+              // When expanded, stem reaches to the replies container; when collapsed, to the top toggle
+              const target = repliesContainer.classList.contains('show') ? repliesContainer : topToggle;
+              const targetRect = target.getBoundingClientRect();
+              const stemHeight = targetRect.top - threadRect.top - 48;
               threadStem.style.height = Math.max(0, stemHeight) + 'px';
             });
           };
+
+          // Click stem to toggle expand/collapse
+          threadStem.addEventListener('click', () => {
+            if (repliesContainer.classList.contains('show')) collapseReplies();
+            else expandReplies();
+          });
 
           const expandReplies = async () => {
             repliesContainer.classList.add('show');
@@ -574,6 +580,8 @@
 
           topToggle.addEventListener('click', expandReplies);
           bottomToggle.addEventListener('click', collapseReplies);
+          // Initial stem height (collapsed state — stem to "Show X replies")
+          requestAnimationFrame(() => updateStemHeight());
         }
       });
     }
@@ -790,6 +798,7 @@
           const topToggle = thread.querySelector('.replies-toggle-top');
           const repliesContainer = thread.querySelector('.replies-container');
           const threadStem = thread.querySelector('.thread-stem');
+          thread.classList.add('has-replies');
           const bottomToggle = document.createElement('button');
           bottomToggle.className = 'replies-toggle-bottom';
           bottomToggle.dataset.commentId = c.id;
@@ -801,8 +810,22 @@
           if (threadStem) {
             threadStem.addEventListener('mouseenter', () => thread.classList.add('thread-hover'));
             threadStem.addEventListener('mouseleave', () => thread.classList.remove('thread-hover'));
-            threadStem.addEventListener('click', () => { if (repliesContainer.classList.contains('show')) collapseReplies(); });
+            threadStem.addEventListener('click', () => {
+              if (repliesContainer.classList.contains('show')) collapseReplies();
+              else expandReplies();
+            });
           }
+
+          const updatePanelStemHeight = () => {
+            if (!threadStem) return;
+            requestAnimationFrame(() => {
+              const threadRect = thread.getBoundingClientRect();
+              const target = repliesContainer.classList.contains('show') ? repliesContainer : topToggle;
+              const targetRect = target.getBoundingClientRect();
+              const stemHeight = targetRect.top - threadRect.top - 36;
+              threadStem.style.height = Math.max(0, stemHeight) + 'px';
+            });
+          };
 
           const collapseReplies = () => {
             repliesContainer.classList.remove('show');
@@ -810,6 +833,7 @@
             topToggle.textContent = `Show ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}`;
             topToggle.style.display = '';
             bottomToggle.style.display = 'none';
+            updatePanelStemHeight();
           };
 
           const expandReplies = async () => {
@@ -833,10 +857,12 @@
               topToggle.style.display = 'none';
               bottomToggle.style.display = '';
             }
+            updatePanelStemHeight();
           };
 
           topToggle.addEventListener('click', expandReplies);
           bottomToggle.addEventListener('click', collapseReplies);
+          requestAnimationFrame(() => updatePanelStemHeight());
         }
       });
     }
