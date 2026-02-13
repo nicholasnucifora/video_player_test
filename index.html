@@ -84,9 +84,9 @@
     .comment-main .text { font-size: 0.85rem; color: #ccc; line-height: 1.5; word-wrap: break-word; }
     .comment-main .meta { font-size: 0.75rem; color: #666; margin-top: 6px; display: flex; align-items: center; gap: 12px; }
 
-    /* Thread line — YouTube-style rounded connector */
+    /* Thread line — from top-level comment avatar down to replies area */
     .comment-thread { position: relative; padding-left: 0; }
-    .comment-thread .thread-line { position: absolute; left: 17px; top: 60px; bottom: 0; width: 2px; background: #333; cursor: pointer; transition: background 0.15s; border-radius: 0 0 4px 4px; }
+    .comment-thread .thread-line { position: absolute; left: 17px; top: 60px; bottom: 0; width: 2px; background: #333; cursor: pointer; transition: background 0.15s; border-radius: 0 0 2px 2px; }
     .comment-thread .thread-line:hover { background: #555; }
 
     /* Replies toggle button */
@@ -99,23 +99,16 @@
     .replies-container { margin-left: 48px; display: none; }
     .replies-container.show { display: block; }
 
-    /* Individual reply with its own thread line */
-    .reply-wrapper { position: relative; padding-left: 22px; }
-    .reply-wrapper .reply-thread-line { position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; cursor: pointer; transition: background 0.15s; border-radius: 4px; }
-    .reply-wrapper .reply-thread-line:hover { background: #555; }
-    .reply-wrapper:last-child .reply-thread-line { bottom: 50%; border-radius: 4px 4px 4px 4px; }
-    /* Horizontal connector from thread line to avatar */
-    .reply-wrapper .reply-connector { position: absolute; left: 0; top: 22px; width: 14px; height: 2px; background: #333; border-radius: 0 4px 4px 0; }
-    .reply-wrapper .comment-main { padding: 8px 0; }
+    /* Individual reply with curved L-shaped connector */
+    .reply-wrapper { position: relative; padding-left: 28px; min-height: 40px; }
+    /* Vertical line segment continuing down */
+    .reply-wrapper::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; }
+    /* Last reply: vertical line stops at the curve */
+    .reply-wrapper:last-child::before { bottom: auto; height: 20px; }
+    /* Curved L-connector: vertical-to-horizontal with rounded corner */
+    .reply-wrapper::after { content: ''; position: absolute; left: 0; top: 12px; width: 18px; height: 12px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; border-top: none; border-right: none; }
+    .reply-wrapper .comment-main { padding: 4px 0 10px; }
     .reply-wrapper .comment-main img { width: 28px; height: 28px; }
-
-    /* Sub-replies (nested deeper) */
-    .sub-replies-container { margin-left: 22px; display: none; }
-    .sub-replies-container.show { display: block; }
-    .sub-replies-toggle { appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.75rem; font-weight: 600; cursor: pointer; padding: 2px 6px; border-radius: 12px; display: flex; align-items: center; gap: 3px; transition: background 0.15s; margin-top: 2px; margin-left: 36px; }
-    .sub-replies-toggle:hover { background: rgba(147,179,230,0.1); }
-    .sub-replies-toggle svg { width: 14px; height: 14px; transition: transform 0.2s; }
-    .sub-replies-toggle.expanded svg { transform: rotate(180deg); }
 
     /* Mobile chapters section (below video) */
     .mobile-chapters-section { display: none; margin-bottom: 1.5rem; }
@@ -193,6 +186,7 @@
       .theatre-row { height: auto; max-height: none; flex-direction: column; }
       media-player { aspect-ratio: 16/9; height: auto; }
       .mobile-chapters-section { display: block; }
+      .custom-comments-btn { display: none !important; }
     }
     @media (max-width: 600px) {
       .custom-actions { bottom: 48px; right: 8px; gap: 4px; }
@@ -429,9 +423,9 @@
           renderChaptersPanel(chapters);
           renderMobileChapters(chapters);
           interceptChaptersButton();
-          interceptCommentsButton();
         }
-        else { interceptCommentsButton(); }
+        // Comments button always injected (desktop only — mobile has comments below)
+        if (!isMobile()) interceptCommentsButton();
       } catch (err) { console.error('Failed to load video data:', err); }
     }
 
@@ -485,19 +479,9 @@
                 const res = await fetch(`/api/video?id=${VIDEO_ID}&replies=${c.id}`);
                 const data = await res.json();
                 if (data.replies?.length) {
-                  data.replies.forEach((r, i) => {
+                  data.replies.forEach(r => {
                     const wrapper = document.createElement('div');
                     wrapper.className = 'reply-wrapper';
-                    // Thread line for this reply
-                    const tl = document.createElement('div');
-                    tl.className = 'reply-thread-line';
-                    tl.addEventListener('click', () => toggleReplies());
-                    wrapper.appendChild(tl);
-                    // Horizontal connector
-                    const conn = document.createElement('div');
-                    conn.className = 'reply-connector';
-                    wrapper.appendChild(conn);
-                    // Comment content
                     const el = document.createElement('div');
                     el.className = 'comment-main';
                     el.innerHTML = `<img src="${r.avatar}" alt="" /><div class="comment-body"><div class="author">${escHtml(r.author)}</div><div class="text">${r.text}</div><div class="meta"><span>${r.likes ? '👍 ' + r.likes : ''}</span><span>${timeAgo(r.date)}</span></div></div>`;
@@ -565,13 +549,6 @@
                   data.replies.forEach(r => {
                     const wrapper = document.createElement('div');
                     wrapper.className = 'reply-wrapper';
-                    const tl = document.createElement('div');
-                    tl.className = 'reply-thread-line';
-                    tl.addEventListener('click', () => toggleReplies());
-                    wrapper.appendChild(tl);
-                    const conn = document.createElement('div');
-                    conn.className = 'reply-connector';
-                    wrapper.appendChild(conn);
                     const el = document.createElement('div');
                     el.className = 'comment-main';
                     el.innerHTML = `<img src="${r.avatar}" alt="" style="width:24px;height:24px;" /><div class="comment-body"><div class="author" style="font-size:0.75rem;">${escHtml(r.author)}</div><div class="text" style="font-size:0.75rem;">${r.text}</div><div class="meta"><span>${r.likes ? '👍 ' + r.likes : ''}</span><span>${timeAgo(r.date)}</span></div></div>`;
