@@ -269,6 +269,10 @@
       .custom-actions { bottom: 48px; right: 8px; gap: 4px; }
       .custom-actions button { padding: 4px 8px; font-size: 10px; }
     }
+    /* Portrait mobile: move action buttons to left so they don't cover fullscreen/settings */
+    @media (max-width: 768px) and (orientation: portrait) {
+      .custom-actions { bottom: 52px; right: auto; left: 12px; }
+    }
 </style>
 </head>
 <body>
