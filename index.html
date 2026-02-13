@@ -471,6 +471,39 @@
     let loadingComments = false;
     let allComments = []; // store for panel reuse
 
+    // Recalculate all stem heights in a comment thread (called after Read more expand/collapse)
+    function recalcStemHeights(el) {
+      const thread = el.closest('.comment-thread');
+      if (!thread) return;
+      requestAnimationFrame(() => {
+        // Main thread stem
+        const threadStem = thread.querySelector(':scope > .thread-stem');
+        if (threadStem && threadStem.style.height) {
+          const repliesContainer = thread.querySelector(':scope > .replies-container');
+          const topToggle = thread.querySelector(':scope > .replies-toggle-top');
+          const target = (repliesContainer && repliesContainer.classList.contains('show')) ? repliesContainer : topToggle;
+          if (target) {
+            const threadRect = thread.getBoundingClientRect();
+            const targetRect = target.getBoundingClientRect();
+            threadStem.style.height = Math.max(0, targetRect.top - threadRect.top - 58 + 4) + 'px';
+          }
+        }
+        // Sub-reply stems inside this thread
+        thread.querySelectorAll('.reply-wrapper').forEach(wrapper => {
+          const subStem = wrapper.querySelector(':scope > .subreply-stem');
+          if (!subStem || !subStem.style.height) return;
+          const subContainer = wrapper.querySelector(':scope > .subreplies-container');
+          const subToggleTop = wrapper.querySelector(':scope > .subreply-toggle');
+          const target = (subContainer && subContainer.classList.contains('show')) ? subContainer : subToggleTop;
+          if (target) {
+            const wrapperRect = wrapper.getBoundingClientRect();
+            const targetRect = target.getBoundingClientRect();
+            subStem.style.height = Math.max(0, targetRect.top - wrapperRect.top - 38 + 4) + 'px';
+          }
+        });
+      });
+    }
+
     async function loadVideoData() {
       try {
         const res = await fetch(`/api/video?id=${VIDEO_ID}`);
@@ -545,6 +578,7 @@
             const isExpanded = textEl.classList.contains('expanded');
             textEl.classList.toggle('expanded');
             btn.textContent = isExpanded ? 'Read more' : 'Show less';
+            recalcStemHeights(textEl);
           });
           textEl.parentNode.insertBefore(btn, textEl.nextSibling);
         }
@@ -722,7 +756,7 @@
             const btn = document.createElement('button');
             btn.className = 'read-more-btn';
             btn.textContent = 'Read more';
-            btn.addEventListener('click', () => { textEl.classList.toggle('expanded'); btn.textContent = textEl.classList.contains('expanded') ? 'Show less' : 'Read more'; });
+            btn.addEventListener('click', () => { textEl.classList.toggle('expanded'); btn.textContent = textEl.classList.contains('expanded') ? 'Show less' : 'Read more'; recalcStemHeights(textEl); });
             textEl.parentNode.insertBefore(btn, textEl.nextSibling);
           }
         });
@@ -810,7 +844,7 @@
                 const btn = document.createElement('button');
                 btn.className = 'read-more-btn';
                 btn.textContent = 'Read more';
-                btn.addEventListener('click', () => { textEl.classList.toggle('expanded'); btn.textContent = textEl.classList.contains('expanded') ? 'Show less' : 'Read more'; });
+                btn.addEventListener('click', () => { textEl.classList.toggle('expanded'); btn.textContent = textEl.classList.contains('expanded') ? 'Show less' : 'Read more'; recalcStemHeights(textEl); });
                 textEl.parentNode.insertBefore(btn, textEl.nextSibling);
               }
             });
@@ -868,7 +902,7 @@
               const btn = document.createElement('button');
               btn.className = 'read-more-btn';
               btn.textContent = 'Read more';
-              btn.addEventListener('click', () => { textEl.classList.toggle('expanded'); btn.textContent = textEl.classList.contains('expanded') ? 'Show less' : 'Read more'; });
+              btn.addEventListener('click', () => { textEl.classList.toggle('expanded'); btn.textContent = textEl.classList.contains('expanded') ? 'Show less' : 'Read more'; recalcStemHeights(textEl); });
               textEl.parentNode.insertBefore(btn, textEl.nextSibling);
             }
           });
