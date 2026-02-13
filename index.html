@@ -461,12 +461,47 @@
 
         const playerCol = document.querySelector('.player-col');
 
-        player.addEventListener('media-fullscreen-request', (e) => { e.preventDefault(); e.stopPropagation(); document.fullscreenElement ? document.exitFullscreen() : playerCol.requestFullscreen(); });
+        // Intercept fullscreen: we want player-col to go fullscreen (not just media-player)
+        // so the side panel is included. Multiple strategies to catch Vidstack's fullscreen.
+        player.addEventListener('media-fullscreen-request', (e) => {
+          e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+          document.fullscreenElement ? document.exitFullscreen() : playerCol.requestFullscreen();
+        }, true);
 
-        // When entering/exiting fullscreen, re-inject our custom buttons (Vidstack may re-render controls)
+        // Also intercept the fullscreen button click directly (capturing phase)
+        function interceptFullscreenBtn() {
+          const fsBtn = player.querySelector('media-fullscreen-button') || player.querySelector('.vds-fullscreen-button');
+          if (!fsBtn || fsBtn._ourFsIntercepted) return;
+          fsBtn._ourFsIntercepted = true;
+          fsBtn.addEventListener('click', (e) => {
+            e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+            document.fullscreenElement ? document.exitFullscreen() : playerCol.requestFullscreen();
+          }, true);
+          // Also block pointer events that Vidstack might use
+          ['pointerup', 'pointerdown', 'mouseup', 'mousedown'].forEach(evt => {
+            fsBtn.addEventListener(evt, (e) => { e.stopPropagation(); }, true);
+          });
+        }
+
+        // Poll for the fullscreen button (it may render late)
+        let fsAttempts = 0;
+        const fsPoll = setInterval(() => {
+          interceptFullscreenBtn();
+          const fsBtn = player.querySelector('media-fullscreen-button') || player.querySelector('.vds-fullscreen-button');
+          if ((fsBtn && fsBtn._ourFsIntercepted) || ++fsAttempts > 60) clearInterval(fsPoll);
+        }, 300);
+
+        // If Vidstack somehow fullscreens the player directly, detect and fix it
         document.addEventListener('fullscreenchange', () => {
+          if (document.fullscreenElement === player) {
+            // Vidstack fullscreened itself — exit and re-fullscreen player-col
+            document.exitFullscreen().then(() => playerCol.requestFullscreen()).catch(() => {});
+            return;
+          }
           if (!document.fullscreenElement && currentPanel) closePanel();
+          // Re-inject buttons after fullscreen change (Vidstack may re-render controls)
           setTimeout(() => {
+            interceptFullscreenBtn();
             if (!player.querySelector('.custom-comments-btn')) interceptCommentsButton();
             const chapMenu = player.querySelector('.vds-chapters-menu media-menu-button');
             if (chapMenu && !chapMenu._chaptersIntercepted) interceptChaptersButton();
