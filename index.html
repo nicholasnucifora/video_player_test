@@ -15,143 +15,48 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #0f0f0f; color: #fff; font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; }
 
-    /* ── Theatre layout: player + optional chapters panel ── */
-    .theatre-row {
-      display: flex;
-      width: 100%;
-      background: #000;
-      height: 100vh;
-      max-height: 100vh;
-      overflow: hidden;
-    }
+    /* ── Theatre layout ── */
+    .theatre-row { display: flex; width: 100%; background: #000; height: 100vh; max-height: 100vh; overflow: hidden; }
+    .player-col { flex: 1; min-width: 0; position: relative; background: #000; overflow: hidden; }
+    media-player { width: 100%; height: 100%; display: block; }
+    media-player video, media-player iframe { object-fit: contain !important; }
 
-    .player-col {
-      flex: 1;
-      min-width: 0;
-      position: relative;
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
+    /* ── Side panel (shared by chapters + comments) ── */
+    .side-panel { width: 0; overflow: hidden; background: #1a1a1a; border-left: 1px solid #2a2a2a; transition: width 0.3s ease; display: flex; flex-direction: column; height: 100%; }
+    .side-panel.open { width: 360px; }
+    .side-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0; }
+    .side-panel-header h3 { font-size: 1rem; font-weight: 600; color: #fff; }
+    .side-panel-close { appearance: none; border: none; background: none; color: #aaa; cursor: pointer; padding: 4px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+    .side-panel-close:hover { background: #333; color: #fff; }
+    .side-panel-close svg { width: 20px; height: 20px; }
+    .side-panel-body { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .side-panel-body::-webkit-scrollbar { width: 6px; }
+    .side-panel-body::-webkit-scrollbar-track { background: transparent; }
+    .side-panel-body::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
 
-    media-player {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
+    /* Panel tabs (chapters vs comments) */
+    .panel-content { display: none; }
+    .panel-content.active { display: block; }
 
-    /* Make sure the video itself doesn't crop — black bars instead */
-    media-player video,
-    media-player iframe {
-      object-fit: contain !important;
-    }
-
-    /* ── Chapters side panel (YouTube-style) ── */
-    /* ── Chapters panel constrained to theatre row height ── */
-    .chapters-panel {
-      width: 0;
-      overflow: hidden;
-      background: #1a1a1a;
-      border-left: 1px solid #2a2a2a;
-      transition: width 0.3s ease;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
-
-    .chapters-panel.open {
-      width: 360px;
-    }
-
-    .chapters-panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 16px;
-      border-bottom: 1px solid #2a2a2a;
-      flex-shrink: 0;
-    }
-
-    .chapters-panel-header h3 {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #fff;
-    }
-
-    .chapters-panel-close {
-      appearance: none;
-      border: none;
-      background: none;
-      color: #aaa;
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.15s, color 0.15s;
-    }
-
-    .chapters-panel-close:hover {
-      background: #333;
-      color: #fff;
-    }
-
-    .chapters-panel-close svg { width: 20px; height: 20px; }
-
-    .chapters-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px 0;
-    }
-
-    .chapters-list::-webkit-scrollbar { width: 6px; }
-    .chapters-list::-webkit-scrollbar-track { background: transparent; }
-    .chapters-list::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
-
-    .chapter-item {
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      padding: 10px 16px;
-      cursor: pointer;
-      transition: background 0.15s;
-      border-left: 3px solid transparent;
-    }
-
+    /* ── Chapters ── */
+    .chapter-item { display: flex; gap: 12px; align-items: flex-start; padding: 10px 16px; cursor: pointer; transition: background 0.15s; border-left: 3px solid transparent; }
     .chapter-item:hover { background: #252525; }
     .chapter-item.active { background: #252525; border-left-color: #3b82f6; }
-
-    .chapter-thumb {
-      width: 100px;
-      height: 56px;
-      border-radius: 6px;
-      object-fit: cover;
-      flex-shrink: 0;
-      background: #333;
-    }
-
+    .chapter-thumb { width: 100px; height: 56px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: #333; }
     .chapter-info { flex: 1; min-width: 0; }
     .chapter-info .chapter-label { font-size: 0.85rem; font-weight: 500; color: #eee; line-height: 1.3; margin-bottom: 2px; }
     .chapter-info .chapter-time { font-size: 0.78rem; color: #888; font-variant-numeric: tabular-nums; }
 
-    /* ── We intercept Vidstack's chapters button click to open our panel ── */
-    /* Kill Vidstack's chapters dropdown menu so it never opens */
-    .vds-chapters-menu-items,
-    .vds-chapters-radio-group,
-    media-menu-items[class*="chapter"] { display: none !important; height: 0 !important; overflow: hidden !important; pointer-events: none !important; }
+    /* ── Kill Vidstack's chapters dropdown ── */
+    .vds-chapters-menu-items, .vds-chapters-radio-group, media-menu-items[class*="chapter"] { display: none !important; height: 0 !important; overflow: hidden !important; pointer-events: none !important; }
 
-    /* ── Below-player content ── */
+    /* ── Below-player ── */
     .below-player { max-width: 960px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
 
     /* ── Fullscreen ── */
     .fullscreen-wrapper { position: relative; background: #000; }
     .fullscreen-wrapper:fullscreen { overflow-y: auto; background: #0f0f0f; }
-    .fullscreen-wrapper:fullscreen .theatre-row,
-    .fullscreen-wrapper:fullscreen media-player { height: 100vh; }
-
+    .fullscreen-wrapper:fullscreen .theatre-row, .fullscreen-wrapper:fullscreen media-player { height: 100vh; }
     .fs-content { display: none; padding: 1.5rem 2rem 3rem; max-width: 800px; margin: 0 auto; }
     .fullscreen-wrapper:fullscreen .fs-content { display: block; }
 
@@ -167,39 +72,38 @@
     .description-box.expanded .desc-preview { -webkit-line-clamp: unset; white-space: pre-wrap; }
     .description-box .desc-toggle { font-size: 0.8rem; color: #888; margin-top: 4px; }
 
-    /* ── Comments ── */
+    /* ── Comments with thread lines ── */
     .comments-section h2 { font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600; }
-    .comment { display: flex; gap: 12px; padding: 0.75rem 0; border-bottom: 1px solid #1a1a1a; }
-    .comment img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-    .comment .comment-body { flex: 1; min-width: 0; }
-    .comment .author { font-weight: 600; font-size: 0.85rem; margin-bottom: 2px; }
-    .comment .text { font-size: 0.85rem; color: #ccc; line-height: 1.5; word-wrap: break-word; }
-    .comment .meta { font-size: 0.75rem; color: #666; margin-top: 4px; }
+    .comment-thread { position: relative; padding-left: 0; }
+    .comment-main { display: flex; gap: 12px; padding: 12px 0; }
+    .comment-main img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .comment-main .comment-body { flex: 1; min-width: 0; }
+    .comment-main .author { font-weight: 600; font-size: 0.85rem; margin-bottom: 2px; color: #eee; }
+    .comment-main .text { font-size: 0.85rem; color: #ccc; line-height: 1.5; word-wrap: break-word; }
+    .comment-main .meta { font-size: 0.75rem; color: #666; margin-top: 6px; display: flex; align-items: center; gap: 12px; }
 
-    /* ── Links in description/comments ── */
-    .desc-preview a, .comment .text a {
-      color: #93b3e6;
-      text-decoration: none;
-    }
-    .desc-preview a:hover, .comment .text a:hover {
-      text-decoration: underline;
-      color: #b3ccf5;
-    }
+    /* Thread line */
+    .comment-thread .thread-line { position: absolute; left: 17px; top: 60px; bottom: 0; width: 2px; background: #333; cursor: pointer; transition: background 0.15s; border-radius: 1px; }
+    .comment-thread .thread-line:hover { background: #555; }
 
-    /* ── Load more comments button ── */
-    .load-more-btn {
-      display: block;
-      width: 100%;
-      padding: 12px;
-      margin-top: 12px;
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      border-radius: 8px;
-      color: #aaa;
-      font-size: 0.85rem;
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s;
-    }
+    /* Replies toggle button */
+    .replies-toggle { appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.8rem; font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 16px; display: flex; align-items: center; gap: 4px; transition: background 0.15s; margin-top: 4px; margin-left: 48px; }
+    .replies-toggle:hover { background: rgba(147,179,230,0.1); }
+    .replies-toggle svg { width: 16px; height: 16px; transition: transform 0.2s; }
+    .replies-toggle.expanded svg { transform: rotate(180deg); }
+
+    /* Replies container */
+    .replies-container { margin-left: 48px; display: none; }
+    .replies-container.show { display: block; }
+    .replies-container .comment-main { padding: 8px 0; }
+    .replies-container .comment-main img { width: 28px; height: 28px; }
+
+    /* Links */
+    .desc-preview a, .comment-main .text a, .panel-comment .text a { color: #93b3e6; text-decoration: none; }
+    .desc-preview a:hover, .comment-main .text a:hover, .panel-comment .text a:hover { text-decoration: underline; color: #b3ccf5; }
+
+    /* Load more */
+    .load-more-btn { display: block; width: 100%; padding: 12px; margin-top: 12px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; color: #aaa; font-size: 0.85rem; cursor: pointer; transition: background 0.15s, color 0.15s; }
     .load-more-btn:hover { background: #252525; color: #fff; }
     .load-more-btn:disabled { opacity: 0.5; cursor: default; }
 
@@ -210,70 +114,60 @@
 
     /* ── Disable Vidstack gestures ── */
     media-gesture { display: none !important; pointer-events: none !important; }
+    media-player [data-media-icon="play"], media-player .vds-play-button[class*="center"], [part~="center-play"] { display: none !important; }
 
-    /* ── Hide Vidstack default big play button ── */
-    media-player [data-media-icon="play"],
-    media-player .vds-play-button[class*="center"],
-    [part~="center-play"] { display: none !important; }
-
-    /* ── Custom overlay buttons (glass) ── */
+    /* ── Custom overlay buttons (glass, bottom-right above controls) ── */
     .custom-actions {
-      position: absolute; bottom: 85px; left: 50%; transform: translateX(-50%);
-      display: flex; gap: 10px; z-index: 50; pointer-events: auto;
+      position: absolute; bottom: 52px; right: 12px;
+      display: flex; gap: 6px; z-index: 50; pointer-events: auto;
       opacity: 0; transition: opacity 0.3s ease;
     }
     media-player[data-controls] .custom-actions { opacity: 1; }
-
     .custom-actions button {
-      appearance: none; border: 1px solid rgba(255,255,255,0.15); border-radius: 12px;
-      padding: 8px 20px; font-size: 14px; font-weight: 600; cursor: pointer;
+      appearance: none; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;
+      padding: 5px 12px; font-size: 11px; font-weight: 500; cursor: pointer;
       transition: opacity 0.2s, transform 0.15s, background 0.2s; line-height: 1;
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
     .custom-actions button:hover { opacity: 0.9; transform: scale(1.05); }
     .custom-actions button:active { transform: scale(0.96); }
-    .btn-save { background: rgba(37,99,235,0.45); color: #fff; }
-    .btn-save:hover { background: rgba(37,99,235,0.6); }
-    .btn-finish { background: rgba(22,163,74,0.45); color: #fff; }
-    .btn-finish:hover { background: rgba(22,163,74,0.6); }
+    .btn-save { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
+    .btn-save:hover { background: rgba(255,255,255,0.14); color: #fff; }
+    .btn-finish { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
+    .btn-finish:hover { background: rgba(255,255,255,0.14); color: #fff; }
 
     /* ── Flash overlay ── */
-    .play-pause-flash {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%) scale(0.5);
-      z-index: 60; pointer-events: none; opacity: 0;
-      transition: opacity 0.15s ease, transform 0.15s ease;
-    }
+    .play-pause-flash { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.5); z-index: 60; pointer-events: none; opacity: 0; transition: opacity 0.15s ease, transform 0.15s ease; }
     .play-pause-flash.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
     .play-pause-flash.fade-out { opacity: 0; transform: translate(-50%, -50%) scale(1.3); transition: opacity 0.5s ease, transform 0.5s ease; }
     .play-pause-flash svg { width: clamp(48px, 10vw, 72px); height: clamp(48px, 10vw, 72px); filter: drop-shadow(0 2px 12px rgba(0,0,0,0.5)); }
 
     /* ── Mobile play/pause circle ── */
-    .mobile-play-btn {
-      display: none;
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      z-index: 55; width: 56px; height: 56px;
-      border-radius: 50%; border: none; cursor: pointer;
-      background: rgba(0,0,0,0.55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-      box-shadow: 0 2px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
-      align-items: center; justify-content: center;
-      opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
-    }
+    .mobile-play-btn { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 55; width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer; background: rgba(0,0,0,0.55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 2px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08); align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
     .mobile-play-btn svg { width: 28px; height: 28px; }
     .mobile-play-btn.show { opacity: 1; pointer-events: auto; display: flex; }
 
+    /* ── Side panel comments ── */
+    .panel-comment { display: flex; gap: 10px; padding: 10px 16px; }
+    .panel-comment img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+    .panel-comment .comment-body { flex: 1; min-width: 0; }
+    .panel-comment .author { font-weight: 600; font-size: 0.8rem; margin-bottom: 2px; }
+    .panel-comment .text { font-size: 0.8rem; color: #ccc; line-height: 1.4; word-wrap: break-word; }
+    .panel-comment .meta { font-size: 0.7rem; color: #666; margin-top: 4px; }
+
     /* ── Responsive ── */
     @media (max-width: 768px) {
-      .chapters-panel.open { width: 280px; }
+      .side-panel.open { width: 280px; }
       .chapter-thumb { width: 80px; height: 45px; }
+      .theatre-row { height: auto; max-height: none; }
+      media-player { aspect-ratio: 16/9; height: auto; }
     }
     @media (max-width: 600px) {
-      .custom-actions { bottom: 70px; gap: 6px; }
-      .custom-actions button { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
-      /* On small mobile, chapters panel overlays the video */
-      .chapters-panel { position: absolute; right: 0; top: 0; z-index: 70; height: 100%; border-left: none; }
-      .chapters-panel.open { width: 85vw; }
+      .custom-actions { bottom: 48px; right: 8px; gap: 4px; }
+      .custom-actions button { padding: 4px 8px; font-size: 10px; }
+      .side-panel { position: absolute; right: 0; top: 0; z-index: 70; height: 100%; border-left: none; }
+      .side-panel.open { width: 85vw; }
     }
 </style>
 </head>
@@ -281,15 +175,7 @@
   <div class="fullscreen-wrapper" id="fullscreenWrapper">
     <div class="theatre-row" id="theatreRow">
       <div class="player-col">
-        <media-player
-          title="YouTube Video"
-          src="youtube/YFjfBk8HI5o"
-          poster="https://i.ytimg.com/vi/YFjfBk8HI5o/maxresdefault.jpg"
-          crossorigin
-          playsinline
-          load="eager"
-          autoplay
-        >
+        <media-player title="YouTube Video" src="youtube/YFjfBk8HI5o" poster="https://i.ytimg.com/vi/YFjfBk8HI5o/maxresdefault.jpg" crossorigin playsinline load="eager" autoplay>
           <media-provider></media-provider>
           <media-video-layout></media-video-layout>
 
@@ -297,9 +183,7 @@
             <button class="btn-save" id="saveBtn" type="button">Save Progress</button>
             <button class="btn-finish" id="finishBtn" type="button">Finish</button>
           </div>
-
           <div class="play-pause-flash" id="playPauseFlash"></div>
-
           <button class="mobile-play-btn" id="mobilePlayBtn" type="button" aria-label="Play/Pause">
             <svg class="mobile-play-icon" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
             <svg class="mobile-pause-icon" viewBox="0 0 24 24" fill="white" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
@@ -307,24 +191,24 @@
         </media-player>
       </div>
 
-      <!-- YouTube-style chapters side panel -->
-      <div class="chapters-panel" id="chaptersPanel">
-        <div class="chapters-panel-header">
-          <h3>In this video</h3>
-          <button class="chapters-panel-close" id="chaptersPanelClose" type="button" aria-label="Close chapters">
+      <!-- Shared side panel for chapters + comments -->
+      <div class="side-panel" id="sidePanel">
+        <div class="side-panel-header">
+          <h3 id="sidePanelTitle">In this video</h3>
+          <button class="side-panel-close" id="sidePanelClose" type="button" aria-label="Close panel">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
           </button>
         </div>
-        <div class="chapters-list" id="chaptersList"></div>
+        <div class="side-panel-body">
+          <div class="panel-content active" id="panelChapters"></div>
+          <div class="panel-content" id="panelComments"></div>
+        </div>
       </div>
     </div>
-
-    <!-- Fullscreen scroll content -->
     <div class="fs-content"></div>
     <div class="scroll-hint" id="scrollHint">↓ Scroll for comments</div>
   </div>
 
-  <!-- Below player: video info, comments (always visible) -->
   <div class="below-player">
     <div class="video-info" id="videoInfo">
       <div class="video-title" id="videoTitle">Loading...</div>
@@ -348,27 +232,43 @@
     const VIDEO_ID = 'YFjfBk8HI5o';
     const isMobile = () => window.matchMedia('(pointer: coarse)').matches;
 
-    // ── Chapters panel ──
-    const chaptersPanel = document.getElementById('chaptersPanel');
-    const chaptersPanelClose = document.getElementById('chaptersPanelClose');
+    // ── Side panel (shared chapters + comments) ──
+    const sidePanel = document.getElementById('sidePanel');
+    const sidePanelTitle = document.getElementById('sidePanelTitle');
+    const panelChapters = document.getElementById('panelChapters');
+    const panelComments = document.getElementById('panelComments');
+    let currentPanel = null; // 'chapters' | 'comments' | null
 
-    function toggleChaptersPanel() {
-      chaptersPanel.classList.toggle('open');
+    function openPanel(type) {
+      if (currentPanel === type) { closePanel(); return; }
+      currentPanel = type;
+      sidePanel.classList.add('open');
+      if (type === 'chapters') {
+        sidePanelTitle.textContent = 'In this video';
+        panelChapters.classList.add('active');
+        panelComments.classList.remove('active');
+      } else {
+        sidePanelTitle.textContent = 'Comments';
+        panelComments.classList.add('active');
+        panelChapters.classList.remove('active');
+        if (!panelComments.hasChildNodes()) populatePanelComments();
+      }
     }
 
-    chaptersPanelClose.addEventListener('click', () => {
-      chaptersPanel.classList.remove('open');
-    });
+    function closePanel() {
+      sidePanel.classList.remove('open');
+      currentPanel = null;
+    }
+
+    document.getElementById('sidePanelClose').addEventListener('click', closePanel);
 
     // ── Button handlers ──
     document.getElementById('saveBtn').addEventListener('click', (e) => {
       e.stopPropagation();
       const player = document.querySelector('media-player');
       const time = player?.currentTime ?? 0;
-      const formatted = new Date(time * 1000).toISOString().substring(11, 19);
-      alert(`Progress saved at ${formatted}`);
+      alert(`Progress saved at ${new Date(time * 1000).toISOString().substring(11, 19)}`);
     });
-
     document.getElementById('finishBtn').addEventListener('click', (e) => {
       e.stopPropagation();
       if (confirm('Mark this video as finished?')) alert('Video marked as finished!');
@@ -398,30 +298,17 @@
         let flashTimer = null;
         function showFlash(isPlaying) {
           flash.innerHTML = isPlaying ? pauseSVG : playSVG;
-          flash.classList.remove('fade-out');
-          flash.classList.add('visible');
+          flash.classList.remove('fade-out'); flash.classList.add('visible');
           clearTimeout(flashTimer);
-          flashTimer = setTimeout(() => {
-            flash.classList.remove('visible');
-            flash.classList.add('fade-out');
-          }, 300);
+          flashTimer = setTimeout(() => { flash.classList.remove('visible'); flash.classList.add('fade-out'); }, 300);
         }
 
-        function togglePlay() {
-          if (player.paused) player.play();
-          else player.pause();
-        }
+        function togglePlay() { if (player.paused) player.play(); else player.pause(); }
 
         function updateMobileIcon() {
-          if (player.paused) {
-            mobilePlayIcon.style.display = '';
-            mobilePauseIcon.style.display = 'none';
-          } else {
-            mobilePlayIcon.style.display = 'none';
-            mobilePauseIcon.style.display = '';
-          }
+          mobilePlayIcon.style.display = player.paused ? '' : 'none';
+          mobilePauseIcon.style.display = player.paused ? 'none' : '';
         }
-
         player.addEventListener('play', updateMobileIcon);
         player.addEventListener('pause', updateMobileIcon);
 
@@ -429,148 +316,154 @@
         player.addEventListener('timeupdate', () => {
           const time = player.currentTime;
           document.querySelectorAll('.chapter-item').forEach(item => {
-            const start = parseFloat(item.dataset.start);
-            const end = parseFloat(item.dataset.end);
-            if (time >= start && time < end) {
-              item.classList.add('active');
-              // Scroll into view if panel is open
-              if (chaptersPanel.classList.contains('open')) {
-                item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-              }
-            } else {
-              item.classList.remove('active');
-            }
+            const start = parseFloat(item.dataset.start), end = parseFloat(item.dataset.end);
+            item.classList.toggle('active', time >= start && time < end);
           });
         });
 
         let mobileControlsTimer = null;
         function showMobileControls() {
-          mobileBtn.classList.add('show');
-          updateMobileIcon();
+          mobileBtn.classList.add('show'); updateMobileIcon();
           clearTimeout(mobileControlsTimer);
-          mobileControlsTimer = setTimeout(() => { mobileBtn.classList.remove('show'); }, 3500);
+          mobileControlsTimer = setTimeout(() => mobileBtn.classList.remove('show'), 3500);
         }
 
-        mobileBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          togglePlay();
-          showFlash(!player.paused);
-          showMobileControls();
-        });
+        mobileBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePlay(); showFlash(!player.paused); showMobileControls(); });
 
         player.addEventListener('click', (e) => {
-          const target = e.target;
-          if (target.closest('.custom-actions') || target.closest('media-controls') ||
-              target.closest('button') || target.closest('[role="slider"]') ||
-              target.closest('media-menu') || target.closest('.mobile-play-btn') ||
-              target.closest('.chapters-panel')) return;
-
-          if (isMobile()) {
-            if (mobileBtn.classList.contains('show')) {
-              mobileBtn.classList.remove('show');
-              clearTimeout(mobileControlsTimer);
-            } else {
-              showMobileControls();
-            }
-          } else {
-            togglePlay();
-            requestAnimationFrame(() => showFlash(!player.paused));
-          }
+          const t = e.target;
+          if (t.closest('.custom-actions') || t.closest('media-controls') || t.closest('button') || t.closest('[role="slider"]') || t.closest('media-menu') || t.closest('.mobile-play-btn') || t.closest('.side-panel')) return;
+          if (isMobile()) { mobileBtn.classList.contains('show') ? (mobileBtn.classList.remove('show'), clearTimeout(mobileControlsTimer)) : showMobileControls(); }
+          else { togglePlay(); requestAnimationFrame(() => showFlash(!player.paused)); }
         });
 
         document.addEventListener('keydown', (e) => {
-          if (e.code === 'Space' && !e.target.matches('input, textarea, button, [contenteditable]')) {
-            e.preventDefault();
-            togglePlay();
-            requestAnimationFrame(() => showFlash(!player.paused));
-          }
+          if (e.code === 'Space' && !e.target.matches('input, textarea, button, [contenteditable]')) { e.preventDefault(); togglePlay(); requestAnimationFrame(() => showFlash(!player.paused)); }
         });
 
-        player.addEventListener('media-fullscreen-request', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (!document.fullscreenElement) wrapper.requestFullscreen();
-          else document.exitFullscreen();
-        });
-      });
-
-      const wrapper = document.getElementById('fullscreenWrapper');
-      wrapper.addEventListener('scroll', () => {
-        const hint = document.getElementById('scrollHint');
-        if (wrapper.scrollTop > 50) hint.style.display = 'none';
+        player.addEventListener('media-fullscreen-request', (e) => { e.preventDefault(); e.stopPropagation(); document.fullscreenElement ? document.exitFullscreen() : wrapper.requestFullscreen(); });
       });
     });
 
+    // ── Data ──
     let nextCommentsPageToken = null;
     let loadingComments = false;
+    let allComments = []; // store for panel reuse
 
-    // ── Load video data ──
     async function loadVideoData() {
       try {
         const res = await fetch(`/api/video?id=${VIDEO_ID}`);
-        if (!res.ok) { console.warn('API returned', res.status); return; }
+        if (!res.ok) return;
         const data = await res.json();
 
         document.getElementById('videoTitle').textContent = data.title;
-
         if (data.channelTitle) {
           document.getElementById('channelRow').style.display = 'flex';
           document.getElementById('channelName').textContent = data.channelTitle;
           if (data.channelAvatar) document.getElementById('channelAvatar').src = data.channelAvatar;
         }
-
         document.getElementById('descText').innerHTML = linkify(data.description || 'No description.');
 
-        const commentCount = data.commentCount ? Number(data.commentCount).toLocaleString() : '';
-        document.getElementById('commentsHeading').textContent = commentCount ? `Comments (${commentCount})` : 'Comments';
+        const count = data.commentCount ? Number(data.commentCount).toLocaleString() : '';
+        document.getElementById('commentsHeading').textContent = count ? `Comments (${count})` : 'Comments';
 
-        if (data.comments?.length) {
-          appendComments(data.comments);
-        }
-
+        if (data.comments?.length) { allComments = data.comments; appendComments(data.comments, document.getElementById('commentsList')); }
         nextCommentsPageToken = data.nextPageToken;
         updateLoadMoreBtn();
 
         const chapters = parseChapters(data.description, parseDuration(data.duration));
-        if (chapters.length > 0) {
-          injectChapterTrack(chapters);
-          renderChaptersPanel(chapters);
-          interceptChaptersButton();
-        }
+        if (chapters.length > 0) { injectChapterTrack(chapters); renderChaptersPanel(chapters); interceptChaptersButton(); interceptCommentsButton(); }
+        else { interceptCommentsButton(); }
       } catch (err) { console.error('Failed to load video data:', err); }
     }
 
-    function appendComments(comments) {
-      const list = document.getElementById('commentsList');
+    function appendComments(comments, container) {
       comments.forEach(c => {
-        const el = document.createElement('div');
-        el.className = 'comment';
-        el.innerHTML = `
+        const thread = document.createElement('div');
+        thread.className = 'comment-thread';
+        let html = `<div class="comment-main">
           <img src="${c.avatar}" alt="" />
           <div class="comment-body">
             <div class="author">${escHtml(c.author)}</div>
             <div class="text">${c.text}</div>
-            <div class="meta">${c.likes ? c.likes + ' likes · ' : ''}${timeAgo(c.date)}</div>
-          </div>`;
-        list.appendChild(el);
+            <div class="meta">
+              <span>${c.likes ? '👍 ' + c.likes : ''}</span>
+              <span>${timeAgo(c.date)}</span>
+            </div>
+          </div>
+        </div>`;
+
+        if (c.replyCount > 0) {
+          html += `<div class="thread-line" data-comment-id="${c.id}"></div>`;
+          html += `<button class="replies-toggle" data-comment-id="${c.id}" data-reply-count="${c.replyCount}">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+            ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}
+          </button>`;
+          html += `<div class="replies-container" id="replies-${c.id}"></div>`;
+        }
+
+        thread.innerHTML = html;
+        container.appendChild(thread);
+
+        // Wire up replies toggle + thread line
+        if (c.replyCount > 0) {
+          const toggleBtn = thread.querySelector('.replies-toggle');
+          const threadLine = thread.querySelector('.thread-line');
+          const repliesContainer = thread.querySelector('.replies-container');
+
+          const toggleReplies = async () => {
+            if (repliesContainer.classList.contains('show')) {
+              repliesContainer.classList.remove('show');
+              toggleBtn.classList.remove('expanded');
+              threadLine.style.bottom = '0';
+              return;
+            }
+            toggleBtn.classList.add('expanded');
+            repliesContainer.classList.add('show');
+
+            if (!repliesContainer.hasChildNodes()) {
+              toggleBtn.disabled = true;
+              toggleBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg> Loading...`;
+              try {
+                const res = await fetch(`/api/video?id=${VIDEO_ID}&replies=${c.id}`);
+                const data = await res.json();
+                if (data.replies?.length) {
+                  data.replies.forEach(r => {
+                    const el = document.createElement('div');
+                    el.className = 'comment-main';
+                    el.innerHTML = `<img src="${r.avatar}" alt="" /><div class="comment-body"><div class="author">${escHtml(r.author)}</div><div class="text">${r.text}</div><div class="meta"><span>${r.likes ? '👍 ' + r.likes : ''}</span><span>${timeAgo(r.date)}</span></div></div>`;
+                    repliesContainer.appendChild(el);
+                  });
+                }
+              } catch (err) { console.error('Failed to load replies:', err); }
+              toggleBtn.disabled = false;
+              toggleBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg> ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}`;
+            }
+          };
+
+          toggleBtn.addEventListener('click', toggleReplies);
+          threadLine.addEventListener('click', toggleReplies);
+        }
+      });
+    }
+
+    function populatePanelComments() {
+      const container = document.getElementById('panelComments');
+      container.innerHTML = '';
+      allComments.forEach(c => {
+        const el = document.createElement('div');
+        el.className = 'panel-comment';
+        el.innerHTML = `<img src="${c.avatar}" alt="" /><div class="comment-body"><div class="author">${escHtml(c.author)}</div><div class="text">${c.text}</div><div class="meta">${c.likes ? '👍 ' + c.likes + ' · ' : ''}${timeAgo(c.date)}</div></div>`;
+        container.appendChild(el);
       });
     }
 
     function updateLoadMoreBtn() {
       let btn = document.getElementById('loadMoreBtn');
       if (nextCommentsPageToken) {
-        if (!btn) {
-          btn = document.createElement('button');
-          btn.id = 'loadMoreBtn';
-          btn.className = 'load-more-btn';
-          btn.textContent = 'Load more comments';
-          btn.addEventListener('click', loadMoreComments);
-          document.getElementById('commentsList').after(btn);
-        }
+        if (!btn) { btn = document.createElement('button'); btn.id = 'loadMoreBtn'; btn.className = 'load-more-btn'; btn.textContent = 'Load more comments'; btn.addEventListener('click', loadMoreComments); document.getElementById('commentsList').after(btn); }
         btn.style.display = 'block';
-      } else if (btn) {
-        btn.style.display = 'none';
-      }
+      } else if (btn) { btn.style.display = 'none'; }
     }
 
     async function loadMoreComments() {
@@ -578,120 +471,95 @@
       loadingComments = true;
       const btn = document.getElementById('loadMoreBtn');
       if (btn) { btn.textContent = 'Loading...'; btn.disabled = true; }
-
       try {
         const res = await fetch(`/api/video?id=${VIDEO_ID}&commentsPage=${nextCommentsPageToken}`);
         if (!res.ok) return;
         const data = await res.json();
-        if (data.comments?.length) appendComments(data.comments);
+        if (data.comments?.length) { allComments.push(...data.comments); appendComments(data.comments, document.getElementById('commentsList')); }
         nextCommentsPageToken = data.nextPageToken;
         updateLoadMoreBtn();
-      } catch (err) { console.error('Failed to load more comments:', err); }
-      finally {
-        loadingComments = false;
-        if (btn) { btn.textContent = 'Load more comments'; btn.disabled = false; }
-      }
+      } catch (err) { console.error(err); }
+      finally { loadingComments = false; if (btn) { btn.textContent = 'Load more comments'; btn.disabled = false; } }
     }
 
-    // Infinite scroll for comments
     window.addEventListener('scroll', () => {
       if (loadingComments || !nextCommentsPageToken) return;
-      const scrollBottom = window.innerHeight + window.scrollY;
-      if (scrollBottom >= document.body.offsetHeight - 400) {
-        loadMoreComments();
-      }
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 400) loadMoreComments();
     });
 
     function linkify(text) {
-      // Convert URLs to clickable links, then preserve newlines
-      return escHtml(text)
-        .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
-        .replace(/\n/g, '<br>');
+      return escHtml(text).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, '<br>');
     }
 
     function interceptChaptersButton() {
       customElements.whenDefined('media-player').then(() => {
         const player = document.querySelector('media-player');
-
-        function tryIntercept() {
-          const menus = player.querySelectorAll('media-menu');
-          let found = false;
-
-          menus.forEach(menu => {
-            const hasChapters = menu.querySelector('[class*="chapter"]');
-            if (!hasChapters) return;
-
-            const btn = menu.querySelector('media-menu-button');
-            if (!btn || btn._intercepted) return;
-            btn._intercepted = true;
-            found = true;
-
-            // Replace the button's click behavior entirely
-            // Clone and replace to remove all existing listeners
-            const newBtn = btn.cloneNode(true);
-            newBtn._intercepted = true;
-            btn.parentNode.replaceChild(newBtn, btn);
-
-            newBtn.addEventListener('click', (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              e.stopImmediatePropagation();
-              // Force close any Vidstack menu that might have opened
-              menus.forEach(m => { m.removeAttribute('open'); m.removeAttribute('data-open'); });
-              toggleChaptersPanel();
-            }, true);
-
-            // Also block pointerdown/pointerup to prevent Vidstack's internal handling
-            ['pointerdown', 'pointerup', 'mousedown', 'mouseup'].forEach(evt => {
-              newBtn.addEventListener(evt, (e) => {
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-              }, true);
-            });
-          });
-
-          return found;
-        }
-
-        // Poll until we find and intercept the button
         let attempts = 0;
         const poll = setInterval(() => {
-          if (tryIntercept() || ++attempts > 50) clearInterval(poll);
+          const menus = player.querySelectorAll('media-menu');
+          let found = false;
+          menus.forEach(menu => {
+            if (!menu.querySelector('[class*="chapter"]')) return;
+            const btn = menu.querySelector('media-menu-button');
+            if (!btn || btn._intercepted) return;
+            btn._intercepted = true; found = true;
+            const newBtn = btn.cloneNode(true); newBtn._intercepted = true;
+            btn.parentNode.replaceChild(newBtn, btn);
+            newBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); menus.forEach(m => { m.removeAttribute('open'); m.removeAttribute('data-open'); }); openPanel('chapters'); }, true);
+            ['pointerdown','pointerup','mousedown','mouseup'].forEach(evt => { newBtn.addEventListener(evt, (e) => { e.stopPropagation(); e.stopImmediatePropagation(); }, true); });
+          });
+          if (found || ++attempts > 50) clearInterval(poll);
         }, 200);
       });
     }
 
-    function parseChapters(description, totalDuration) {
+    function interceptCommentsButton() {
+      // Inject a comments button into Vidstack's control bar next to the chapters button
+      customElements.whenDefined('media-player').then(() => {
+        const player = document.querySelector('media-player');
+        let attempts = 0;
+        const poll = setInterval(() => {
+          const groups = player.querySelectorAll('.vds-controls-group');
+          const lastGroup = groups[groups.length - 1];
+          if (!lastGroup) { if (++attempts > 50) clearInterval(poll); return; }
+          if (lastGroup.querySelector('.custom-comments-btn')) { clearInterval(poll); return; }
+
+          const btn = document.createElement('button');
+          btn.className = 'custom-comments-btn';
+          btn.setAttribute('aria-label', 'Comments');
+          btn.style.cssText = 'appearance:none;border:none;background:none;color:#fff;cursor:pointer;padding:7px;display:flex;align-items:center;opacity:0.8;transition:opacity 0.15s;';
+          btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+          btn.addEventListener('mouseenter', () => btn.style.opacity = '1');
+          btn.addEventListener('mouseleave', () => btn.style.opacity = '0.8');
+          btn.addEventListener('click', (e) => { e.stopPropagation(); e.stopImmediatePropagation(); openPanel('comments'); }, true);
+          ['pointerdown','pointerup','mousedown','mouseup'].forEach(evt => { btn.addEventListener(evt, (e) => { e.stopPropagation(); e.stopImmediatePropagation(); }, true); });
+
+          // Insert before fullscreen button
+          const fsBtn = lastGroup.querySelector('media-fullscreen-button');
+          if (fsBtn) lastGroup.insertBefore(btn, fsBtn);
+          else lastGroup.appendChild(btn);
+          clearInterval(poll);
+        }, 200);
+      });
+    }
+
+    function parseChapters(desc, totalDuration) {
       const regex = /^[\s]*(\d{1,2}:\d{2}(?::\d{2})?)\s*[-–—).\]]*\s*(.+)$/gm;
       const chapters = []; let match;
-      while ((match = regex.exec(description)) !== null) {
-        chapters.push({ time: match[1].trim(), label: match[2].trim(), seconds: timeToSeconds(match[1].trim()) });
-      }
+      while ((match = regex.exec(desc)) !== null) chapters.push({ time: match[1].trim(), label: match[2].trim(), seconds: timeToSeconds(match[1].trim()) });
       if (chapters.length < 3 || chapters[0].seconds !== 0) return [];
       for (let i = 0; i < chapters.length; i++) chapters[i].end = i < chapters.length - 1 ? chapters[i + 1].seconds : totalDuration;
       return chapters;
     }
 
     function renderChaptersPanel(chapters) {
-      const list = document.getElementById('chaptersList');
+      const list = document.getElementById('panelChapters');
       list.innerHTML = '';
-      const thumbBase = `https://i.ytimg.com/vi/${VIDEO_ID}/mqdefault.jpg`;
-
+      const thumb = `https://i.ytimg.com/vi/${VIDEO_ID}/mqdefault.jpg`;
       chapters.forEach(ch => {
-        const item = document.createElement('div');
-        item.className = 'chapter-item';
-        item.dataset.start = ch.seconds;
-        item.dataset.end = ch.end;
-        item.innerHTML = `
-          <img class="chapter-thumb" src="${thumbBase}" alt="" />
-          <div class="chapter-info">
-            <div class="chapter-label">${escHtml(ch.label)}</div>
-            <div class="chapter-time">${ch.time}</div>
-          </div>`;
-        item.addEventListener('click', () => {
-          const p = document.querySelector('media-player');
-          if (p) { p.currentTime = ch.seconds; p.play(); }
-        });
+        const item = document.createElement('div'); item.className = 'chapter-item'; item.dataset.start = ch.seconds; item.dataset.end = ch.end;
+        item.innerHTML = `<img class="chapter-thumb" src="${thumb}" alt="" /><div class="chapter-info"><div class="chapter-label">${escHtml(ch.label)}</div><div class="chapter-time">${ch.time}</div></div>`;
+        item.addEventListener('click', () => { const p = document.querySelector('media-player'); if (p) { p.currentTime = ch.seconds; p.play(); } });
         list.appendChild(item);
       });
     }
@@ -713,8 +581,7 @@
 
     function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
     function timeAgo(dateStr) {
-      const diff = Date.now() - new Date(dateStr).getTime();
-      const mins = Math.floor(diff/60000);
+      const diff = Date.now() - new Date(dateStr).getTime(); const mins = Math.floor(diff/60000);
       if (mins < 60) return `${mins}m ago`; const hrs = Math.floor(mins/60);
       if (hrs < 24) return `${hrs}h ago`; const days = Math.floor(hrs/24);
       if (days < 30) return `${days}d ago`; const months = Math.floor(days/30);
