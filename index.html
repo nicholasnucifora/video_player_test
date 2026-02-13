@@ -4,8 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vidstack Player Playground</title>
+  <link rel="modulepreload" href="https://cdn.vidstack.io/player" />
+  <link rel="preload" href="https://cdn.vidstack.io/player/theme.css" as="style" />
+  <link rel="preload" href="https://cdn.vidstack.io/player/video.css" as="style" />
   <link rel="stylesheet" href="https://cdn.vidstack.io/player/theme.css" />
   <link rel="stylesheet" href="https://cdn.vidstack.io/player/video.css" />
+  <link rel="preconnect" href="https://www.youtube.com" />
+  <link rel="preconnect" href="https://i.ytimg.com" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -272,8 +277,10 @@
       <media-player
         title="YouTube Video"
         src="youtube/YFjfBk8HI5o"
+        poster="https://i.ytimg.com/vi/YFjfBk8HI5o/maxresdefault.jpg"
         crossorigin
         playsinline
+        load="visible"
       >
         <media-provider></media-provider>
         <media-video-layout></media-video-layout>
