@@ -87,31 +87,44 @@
     /* Thread line — connects parent avatar to replies when expanded */
     .comment-thread { position: relative; }
     .comment-thread .thread-line { display: none; }
-    /* When replies are open, draw a line from parent avatar down to the replies container */
-    .comment-thread.has-replies-open::before { content: ''; position: absolute; left: 18px; top: 48px; bottom: 4px; width: 2px; background: #333; z-index: 1; pointer-events: none; }
+
+    /* Stem line from parent avatar down to replies — real DOM element for hover interaction */
+    /* Height is set dynamically via JS to reach exactly to the replies container top */
+    .thread-stem { display: none; position: absolute; left: 18px; top: 48px; width: 20px; cursor: pointer; z-index: 1; }
+    .thread-stem::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; transition: background 0.15s; }
+    .comment-thread.has-replies-open .thread-stem { display: block; }
+    /* Hover on stem OR collapse line highlights both via parent class */
+    .comment-thread.thread-hover .thread-stem::after,
+    .comment-thread.thread-hover .replies-collapse-line::after { background: #888; }
 
     /* Top "Show X replies" toggle — sits below the parent comment, indented to avatar center */
     .replies-toggle-top { appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.9rem; font-weight: 600; cursor: pointer; padding: 8px 12px; display: flex; align-items: center; gap: 6px; transition: background 0.15s; margin-top: 2px; margin-left: 48px; border-radius: 20px; }
     .replies-toggle-top:hover { background: rgba(147,179,230,0.1); }
 
-    /* Replies container — indented so the collapse line aligns under parent avatar center (18px = half of 36px avatar) */
-    .replies-container { margin-left: 18px; display: none; position: relative; padding-bottom: 4px; }
+    /* Replies container — indented so the collapse line aligns under parent avatar center */
+    .replies-container { margin-left: 18px; display: none; position: relative; }
     .replies-container.show { display: block; }
 
-    /* Clickable collapse line inside the replies container */
-    .replies-collapse-line { position: absolute; left: 0; top: 0; bottom: 0; width: 20px; cursor: pointer; z-index: 2; }
+    /* Clickable collapse line inside the replies container — stops before bottom toggle via bottom offset */
+    .replies-collapse-line { position: absolute; left: 0; top: 0; bottom: 22px; width: 20px; cursor: pointer; z-index: 2; }
     .replies-collapse-line::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; border-radius: 1px; transition: background 0.15s; }
-    .replies-collapse-line:hover::after { background: #888; }
 
     /* Individual reply — L-curve connects collapse line to reply avatar */
-    /* padding-left = curve width (20px) + small gap (2px) so avatar sits right after the curve arm */
     .reply-wrapper { position: relative; padding-left: 22px; min-height: 28px; }
-    /* L-curve: goes down from the vertical line then curves right to the avatar */
     .reply-wrapper::after { content: ''; position: absolute; left: 0; top: 0; width: 14px; height: 18px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
     .reply-wrapper .comment-main { padding: 4px 0 8px; }
     .reply-wrapper .comment-main img { width: 28px; height: 28px; }
 
-    /* Bottom "Hide replies" toggle — last item in the tree, gets its own L-curve from the collapse line */
+    /* Sub-thread stem — connects reply avatar down to sub-replies when expanded */
+    /* Height set dynamically via JS */
+    .reply-wrapper .subreply-stem { display: none; position: absolute; left: 14px; top: 32px; width: 20px; cursor: pointer; z-index: 1; }
+    .reply-wrapper .subreply-stem::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; transition: background 0.15s; }
+    .reply-wrapper.has-subreplies-open .subreply-stem { display: block; }
+    /* Hover on sub-stem OR sub-collapse line highlights both */
+    .reply-wrapper.subreply-hover .subreply-stem::after,
+    .reply-wrapper.subreply-hover .subreplies-collapse-line::after { background: #888; }
+
+    /* Bottom "Hide replies" toggle — last item in the tree, gets its own L-curve */
     .replies-toggle-bottom { position: relative; padding-left: 22px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.9rem; font-weight: 600; cursor: pointer; padding-top: 4px; padding-bottom: 8px; display: flex; align-items: center; border-radius: 20px; transition: background 0.15s; }
     .replies-toggle-bottom::after { content: ''; position: absolute; left: 0; top: 0; width: 14px; height: 14px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
     .replies-toggle-bottom:hover { background: rgba(147,179,230,0.1); }
@@ -122,11 +135,11 @@
     .subreply-toggle:hover { background: rgba(147,179,230,0.1); }
 
     /* Sub-replies nested under a specific reply */
-    .subreplies-container { margin-left: 14px; display: none; position: relative; padding-bottom: 2px; }
+    .subreplies-container { margin-left: 14px; display: none; position: relative; }
     .subreplies-container.show { display: block; }
-    .subreplies-collapse-line { position: absolute; left: 0; top: 0; bottom: 0; width: 20px; cursor: pointer; z-index: 2; }
+    /* Sub-collapse line stops before the bottom sub-toggle */
+    .subreplies-collapse-line { position: absolute; left: 0; top: 0; bottom: 20px; width: 20px; cursor: pointer; z-index: 2; }
     .subreplies-collapse-line::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; border-radius: 1px; transition: background 0.15s; }
-    .subreplies-collapse-line:hover::after { background: #888; }
     .subreply-item { position: relative; padding-left: 22px; }
     .subreply-item::after { content: ''; position: absolute; left: 0; top: 0; width: 14px; height: 16px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
     .subreply-item .comment-main { padding: 4px 0 6px; }
@@ -471,6 +484,7 @@
         </div>`;
 
         if (c.replyCount > 0) {
+          html += `<div class="thread-stem"></div>`;
           html += `<button class="replies-toggle-top" data-comment-id="${c.id}">
             Show ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}
           </button>`;
@@ -483,6 +497,7 @@
         if (c.replyCount > 0) {
           const topToggle = thread.querySelector('.replies-toggle-top');
           const repliesContainer = thread.querySelector('.replies-container');
+          const threadStem = thread.querySelector('.thread-stem');
           // Bottom toggle lives INSIDE the replies-container (appended after tree is built)
           const bottomToggle = document.createElement('button');
           bottomToggle.className = 'replies-toggle-bottom';
@@ -491,12 +506,34 @@
           bottomToggle.style.display = 'none';
           repliesContainer.appendChild(bottomToggle);
 
+          // Hover: highlight stem + collapse line together
+          const hoverOn = () => thread.classList.add('thread-hover');
+          const hoverOff = () => thread.classList.remove('thread-hover');
+          threadStem.addEventListener('mouseenter', hoverOn);
+          threadStem.addEventListener('mouseleave', hoverOff);
+          // Collapse line hover wired in buildReplyTree via collapseParent's thread ref
+
+          // Click stem to collapse
+          threadStem.addEventListener('click', () => {
+            if (repliesContainer.classList.contains('show')) collapseReplies();
+          });
+
           const collapseReplies = () => {
             repliesContainer.classList.remove('show');
             thread.classList.remove('has-replies-open');
             topToggle.textContent = `Show ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}`;
             topToggle.style.display = '';
             bottomToggle.style.display = 'none';
+          };
+
+          const updateStemHeight = () => {
+            requestAnimationFrame(() => {
+              const threadRect = thread.getBoundingClientRect();
+              const containerRect = repliesContainer.getBoundingClientRect();
+              // Stem goes from top:48px down to the top of the replies container
+              const stemHeight = containerRect.top - threadRect.top - 48;
+              threadStem.style.height = Math.max(0, stemHeight) + 'px';
+            });
           };
 
           const expandReplies = async () => {
@@ -521,6 +558,7 @@
               topToggle.style.display = 'none';
               bottomToggle.style.display = '';
             }
+            updateStemHeight();
           };
 
           topToggle.addEventListener('click', expandReplies);
@@ -536,6 +574,12 @@
       const collapseLine = document.createElement('div');
       collapseLine.className = 'replies-collapse-line';
       collapseLine.addEventListener('click', collapseParent);
+      // Hover on collapse line highlights the stem too
+      const parentThread = container.closest('.comment-thread');
+      if (parentThread) {
+        collapseLine.addEventListener('mouseenter', () => parentThread.classList.add('thread-hover'));
+        collapseLine.addEventListener('mouseleave', () => parentThread.classList.remove('thread-hover'));
+      }
       container.appendChild(collapseLine);
 
       // YouTube data: author names have @ prefix like "@oracleofwater"
@@ -612,6 +656,11 @@
         wrapper.appendChild(el);
 
         if (subs.length > 0) {
+          // Stem line from this reply's avatar down to sub-replies
+          const subStem = document.createElement('div');
+          subStem.className = 'subreply-stem';
+          wrapper.appendChild(subStem);
+
           // Top toggle: "Show X Replies" — visible when collapsed
           const subToggleTop = document.createElement('button');
           subToggleTop.className = 'subreply-toggle';
@@ -631,17 +680,35 @@
 
           const showSubs = () => {
             subContainer.classList.add('show');
+            wrapper.classList.add('has-subreplies-open');
             subToggleTop.style.display = 'none';
             subToggleBottom.style.display = '';
+            // Calculate sub-stem height
+            requestAnimationFrame(() => {
+              const wrapperRect = wrapper.getBoundingClientRect();
+              const subContainerRect = subContainer.getBoundingClientRect();
+              const stemHeight = subContainerRect.top - wrapperRect.top - 32;
+              subStem.style.height = Math.max(0, stemHeight) + 'px';
+            });
           };
           const hideSubs = () => {
             subContainer.classList.remove('show');
+            wrapper.classList.remove('has-subreplies-open');
             subToggleTop.style.display = '';
             subToggleTop.textContent = subs.length === 1 ? 'Show Reply' : `Show ${subs.length} Replies`;
             subToggleBottom.style.display = 'none';
           };
 
+          // Hover: highlight sub-stem + sub-collapse line together
+          const subHoverOn = () => wrapper.classList.add('subreply-hover');
+          const subHoverOff = () => wrapper.classList.remove('subreply-hover');
+          subStem.addEventListener('mouseenter', subHoverOn);
+          subStem.addEventListener('mouseleave', subHoverOff);
+          subCollapseLine.addEventListener('mouseenter', subHoverOn);
+          subCollapseLine.addEventListener('mouseleave', subHoverOff);
+
           subCollapseLine.addEventListener('click', hideSubs);
+          subStem.addEventListener('click', () => { if (subContainer.classList.contains('show')) hideSubs(); });
           subContainer.appendChild(subCollapseLine);
 
           subs.forEach(sr => {
@@ -688,6 +755,7 @@
           </div>
         </div>`;
         if (c.replyCount > 0) {
+          html += `<div class="thread-stem" style="left:14px;top:36px;"></div>`;
           html += `<button class="replies-toggle-top" data-comment-id="${c.id}" style="margin-left:40px;font-size:0.75rem;">
             Show ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}
           </button>`;
@@ -699,12 +767,20 @@
         if (c.replyCount > 0) {
           const topToggle = thread.querySelector('.replies-toggle-top');
           const repliesContainer = thread.querySelector('.replies-container');
+          const threadStem = thread.querySelector('.thread-stem');
           const bottomToggle = document.createElement('button');
           bottomToggle.className = 'replies-toggle-bottom';
           bottomToggle.dataset.commentId = c.id;
           bottomToggle.textContent = 'Hide replies';
           bottomToggle.style.cssText = 'font-size:0.75rem;display:none;';
           repliesContainer.appendChild(bottomToggle);
+
+          // Hover wiring
+          if (threadStem) {
+            threadStem.addEventListener('mouseenter', () => thread.classList.add('thread-hover'));
+            threadStem.addEventListener('mouseleave', () => thread.classList.remove('thread-hover'));
+            threadStem.addEventListener('click', () => { if (repliesContainer.classList.contains('show')) collapseReplies(); });
+          }
 
           const collapseReplies = () => {
             repliesContainer.classList.remove('show');
