@@ -484,7 +484,11 @@
         }
         // Comments button always injected (desktop only — mobile has comments below)
         if (!isMobile()) interceptCommentsButton();
-      } catch (err) { console.error('Failed to load video data:', err); }
+      } catch (err) { 
+        console.error('Failed to load video data:', err);
+        // Still inject comments button even if API fails
+        if (!isMobile()) interceptCommentsButton();
+      }
     }
 
     function appendComments(comments, container) {
@@ -955,10 +959,21 @@
         const player = document.querySelector('media-player');
         let attempts = 0;
         const poll = setInterval(() => {
+          // Look for the bottom controls group (contains fullscreen, pip, etc.)
           const groups = player.querySelectorAll('.vds-controls-group');
-          const lastGroup = groups[groups.length - 1];
-          if (!lastGroup) { if (++attempts > 50) clearInterval(poll); return; }
-          if (lastGroup.querySelector('.custom-comments-btn')) { clearInterval(poll); return; }
+          if (!groups.length) { if (++attempts > 100) clearInterval(poll); return; }
+          
+          // Find the group that contains the fullscreen button (that's the bottom bar)
+          let targetGroup = null;
+          for (const g of groups) {
+            if (g.querySelector('media-fullscreen-button') || g.querySelector('.vds-fullscreen-button')) {
+              targetGroup = g;
+              break;
+            }
+          }
+          if (!targetGroup) targetGroup = groups[groups.length - 1];
+          if (!targetGroup) { if (++attempts > 100) clearInterval(poll); return; }
+          if (targetGroup.querySelector('.custom-comments-btn')) { clearInterval(poll); return; }
 
           const btn = document.createElement('button');
           btn.className = 'custom-comments-btn';
@@ -971,11 +986,13 @@
           ['pointerdown','pointerup','mousedown','mouseup'].forEach(evt => { btn.addEventListener(evt, (e) => { e.stopPropagation(); e.stopImmediatePropagation(); }, true); });
 
           // Insert before fullscreen button
-          const fsBtn = lastGroup.querySelector('media-fullscreen-button');
-          if (fsBtn) lastGroup.insertBefore(btn, fsBtn);
-          else lastGroup.appendChild(btn);
+          const fsBtn = targetGroup.querySelector('media-fullscreen-button') || targetGroup.querySelector('.vds-fullscreen-button');
+          if (fsBtn) targetGroup.insertBefore(btn, fsBtn);
+          else targetGroup.appendChild(btn);
+          
+          console.log('Comments button injected into control bar');
           clearInterval(poll);
-        }, 200);
+        }, 300);
       });
     }
 
