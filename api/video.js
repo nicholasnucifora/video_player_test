@@ -14,7 +14,7 @@ export default async function handler(req, res) {
       const repliesData = repliesRes ? await repliesRes.json() : { items: [] };
       const replies = (repliesData.items || []).map((c) => {
         const s = c.snippet;
-        return { author: s.authorDisplayName, avatar: s.authorProfileImageUrl, text: s.textDisplay, likes: s.likeCount, date: s.publishedAt };
+        return { author: s.authorDisplayName, avatar: s.authorProfileImageUrl, text: s.textDisplay, textOriginal: s.textOriginal || '', likes: s.likeCount, date: s.publishedAt };
       });
       res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
       return res.json({ replies });

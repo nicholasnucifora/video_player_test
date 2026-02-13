@@ -524,26 +524,43 @@
       collapseLine.addEventListener('click', collapseParent);
       container.appendChild(collapseLine);
 
-      // Parse @mentions from each reply
+      // Normalize name for fuzzy matching (YouTube @handles vs display names differ)
+      const norm = s => s.toLowerCase().replace(/[\s._-]/g, '');
+
+      // Parse @mentions from each reply using textOriginal (plain text, reliable)
+      // but display using text (HTML with formatting)
       const parsed = replies.map(r => {
-        // YouTube textDisplay: <a href="..." ...>@Username</a> rest of text
-        // or plain: @Username rest of text
-        const htmlMention = r.text.match(/^<a[^>]*>@([^<]+)<\/a>\s*/);
-        const plainMention = !htmlMention ? r.text.match(/^@([\w\s._-]+?)\s/) : null;
-        const mentionedName = htmlMention ? htmlMention[1].trim() : (plainMention ? plainMention[1].trim() : null);
-        // Strip the @mention from the displayed text
+        const orig = r.textOriginal || '';
+        let mentionedName = null;
         let cleanText = r.text;
-        if (htmlMention) cleanText = r.text.slice(htmlMention[0].length);
-        else if (plainMention) cleanText = r.text.slice(plainMention[0].length);
+        
+        // Parse @mention from plain text original
+        const plainMatch = orig.match(/^@(\S+)\s*/);
+        if (plainMatch) {
+          mentionedName = plainMatch[1].trim();
+          // Strip the @mention from the HTML display text too
+          // It could be wrapped in <a>, <b>, or plain
+          cleanText = r.text
+            .replace(/^<a[^>]*>@[^<]*<\/a>\s*/, '')
+            .replace(/^<b>@[^<]*<\/b>\s*/, '')
+            .replace(/^@\S+\s*/, '');
+        }
+        
         return { ...r, mentionedName, cleanText };
       });
 
-      // Separate direct replies vs sub-replies
+      // Check if a mentioned name matches a given author (fuzzy)
+      const nameMatches = (mention, author) => {
+        if (!mention || !author) return false;
+        return norm(mention) === norm(author);
+      };
+
+      // Separate: direct replies (to parent or no mention) vs sub-replies
       const directReplies = [];
       const pendingSubs = [];
 
       parsed.forEach(r => {
-        if (!r.mentionedName || r.mentionedName === parentAuthor) {
+        if (!r.mentionedName || nameMatches(r.mentionedName, parentAuthor)) {
           directReplies.push(r);
         } else {
           pendingSubs.push(r);
@@ -551,20 +568,22 @@
       });
 
       // Attach sub-replies to the direct reply they mention
-      const subRepliesByAuthor = {};
+      const subRepliesByIdx = {};
       pendingSubs.forEach(r => {
-        if (directReplies.some(dr => dr.author === r.mentionedName)) {
-          if (!subRepliesByAuthor[r.mentionedName]) subRepliesByAuthor[r.mentionedName] = [];
-          subRepliesByAuthor[r.mentionedName].push(r);
+        const targetIdx = directReplies.findIndex(dr => nameMatches(r.mentionedName, dr.author));
+        if (targetIdx >= 0) {
+          if (!subRepliesByIdx[targetIdx]) subRepliesByIdx[targetIdx] = [];
+          subRepliesByIdx[targetIdx].push(r);
         } else {
+          // Can't find target, show as direct reply
           directReplies.push(r);
         }
       });
 
-      directReplies.forEach(r => {
+      directReplies.forEach((r, idx) => {
         const wrapper = document.createElement('div');
         wrapper.className = 'reply-wrapper';
-        const subs = subRepliesByAuthor[r.author] || [];
+        const subs = subRepliesByIdx[idx] || [];
 
         const el = document.createElement('div');
         el.className = 'comment-main';
