@@ -88,48 +88,45 @@
     .comment-thread { position: relative; }
     .comment-thread .thread-line { display: none; }
 
-    /* Top "Show X replies" toggle (no line, just text) */
-    .replies-toggle-top { appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.85rem; font-weight: 600; cursor: pointer; padding: 6px 0; display: flex; align-items: center; gap: 4px; transition: background 0.15s; margin-top: 2px; margin-left: 48px; border-radius: 16px; }
-    .replies-toggle-top:hover { background: rgba(147,179,230,0.08); padding: 6px 10px; margin-left: 38px; }
+    /* Top "Show X replies" toggle — sits below the parent comment, indented to avatar center */
+    .replies-toggle-top { appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.9rem; font-weight: 600; cursor: pointer; padding: 8px 12px; display: flex; align-items: center; gap: 6px; transition: background 0.15s; margin-top: 2px; margin-left: 48px; border-radius: 20px; }
+    .replies-toggle-top:hover { background: rgba(147,179,230,0.1); }
 
-    /* Replies container */
-    .replies-container { margin-left: 17px; display: none; position: relative; }
+    /* Replies container — indented so the collapse line aligns under parent avatar center (18px = half of 36px avatar) */
+    .replies-container { margin-left: 18px; display: none; position: relative; padding-bottom: 4px; }
     .replies-container.show { display: block; }
 
     /* Clickable collapse line running down the left side of all replies */
-    .replies-collapse-line { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; cursor: pointer; z-index: 2; }
+    .replies-collapse-line { position: absolute; left: 0; top: 0; bottom: 0; width: 20px; cursor: pointer; z-index: 2; }
     .replies-collapse-line::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; border-radius: 1px; transition: background 0.15s; }
-    .replies-collapse-line:hover::after { background: #666; }
+    .replies-collapse-line:hover::after { background: #888; }
 
-    /* Individual reply with curved L-connector */
-    .reply-wrapper { position: relative; padding-left: 28px; }
-    .reply-wrapper::before { content: ''; position: absolute; left: 0; top: 0; width: 2px; height: 18px; background: #333; }
-    .reply-wrapper::after { content: ''; position: absolute; left: 0; top: 18px; width: 16px; height: 2px; background: #333; border-radius: 0 0 0 6px; }
-    .reply-wrapper::before { border-radius: 0 0 0 6px; }
-    /* Use a single pseudo for the L-curve: vertical + horizontal with rounded corner */
-    .reply-wrapper::after { content: ''; position: absolute; left: 0; top: 4px; width: 16px; height: 16px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 10px; background: transparent; }
-    .reply-wrapper::before { display: none; }
+    /* Individual reply — L-curve connects collapse line to reply avatar */
+    /* padding-left = curve width (20px) + small gap (2px) so avatar sits right after the curve arm */
+    .reply-wrapper { position: relative; padding-left: 22px; min-height: 28px; }
+    /* L-curve: goes down from the vertical line then curves right to the avatar */
+    .reply-wrapper::after { content: ''; position: absolute; left: 0; top: 0; width: 14px; height: 18px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
     .reply-wrapper .comment-main { padding: 4px 0 8px; }
     .reply-wrapper .comment-main img { width: 28px; height: 28px; }
 
-    /* Bottom "Hide replies" toggle — sits inside the tree with its own L-curve */
-    .replies-toggle-bottom { position: relative; padding-left: 28px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.85rem; font-weight: 600; cursor: pointer; padding-top: 6px; padding-bottom: 6px; display: flex; align-items: center; border-radius: 16px; transition: background 0.15s; }
-    .replies-toggle-bottom::after { content: ''; position: absolute; left: 0; top: 2px; width: 16px; height: 14px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 10px; background: transparent; }
-    .replies-toggle-bottom:hover { background: rgba(147,179,230,0.08); }
+    /* Bottom "Hide replies" toggle — last item in the tree, gets its own L-curve from the collapse line */
+    .replies-toggle-bottom { position: relative; padding-left: 22px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.9rem; font-weight: 600; cursor: pointer; padding-top: 4px; padding-bottom: 8px; display: flex; align-items: center; border-radius: 20px; transition: background 0.15s; }
+    .replies-toggle-bottom::after { content: ''; position: absolute; left: 0; top: 0; width: 14px; height: 14px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
+    .replies-toggle-bottom:hover { background: rgba(147,179,230,0.1); }
 
-    /* Sub-reply show/hide toggle — also a tree item with L-curve */
-    .subreply-toggle { position: relative; padding-left: 28px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.78rem; font-weight: 600; cursor: pointer; padding-top: 4px; padding-bottom: 4px; display: flex; align-items: center; border-radius: 14px; transition: background 0.15s; margin: 0; }
-    .subreply-toggle::after { content: ''; position: absolute; left: 0; top: 0; width: 16px; height: 12px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 10px; background: transparent; }
-    .subreply-toggle:hover { background: rgba(147,179,230,0.08); }
+    /* Sub-reply show/hide toggle — tree item with L-curve */
+    .subreply-toggle { position: relative; padding-left: 22px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.88rem; font-weight: 600; cursor: pointer; padding-top: 4px; padding-bottom: 4px; display: flex; align-items: center; border-radius: 18px; transition: background 0.15s; margin: 0; }
+    .subreply-toggle::after { content: ''; position: absolute; left: 0; top: 0; width: 14px; height: 14px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
+    .subreply-toggle:hover { background: rgba(147,179,230,0.1); }
 
     /* Sub-replies nested under a specific reply */
-    .subreplies-container { margin-left: 0; display: none; position: relative; }
+    .subreplies-container { margin-left: 14px; display: none; position: relative; padding-bottom: 2px; }
     .subreplies-container.show { display: block; }
-    .subreplies-collapse-line { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; cursor: pointer; z-index: 2; }
+    .subreplies-collapse-line { position: absolute; left: 0; top: 0; bottom: 0; width: 20px; cursor: pointer; z-index: 2; }
     .subreplies-collapse-line::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; border-radius: 1px; transition: background 0.15s; }
-    .subreplies-collapse-line:hover::after { background: #666; }
-    .subreply-item { position: relative; padding-left: 28px; }
-    .subreply-item::after { content: ''; position: absolute; left: 0; top: 2px; width: 16px; height: 14px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 10px; background: transparent; }
+    .subreplies-collapse-line:hover::after { background: #888; }
+    .subreply-item { position: relative; padding-left: 22px; }
+    .subreply-item::after { content: ''; position: absolute; left: 0; top: 0; width: 14px; height: 16px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
     .subreply-item .comment-main { padding: 4px 0 6px; }
     .subreply-item .comment-main img { width: 24px; height: 24px; }
 
@@ -688,7 +685,7 @@
           bottomToggle.className = 'replies-toggle-bottom';
           bottomToggle.dataset.commentId = c.id;
           bottomToggle.textContent = 'Hide replies';
-          bottomToggle.style.cssText = 'margin-left:40px;font-size:0.75rem;display:none;';
+          bottomToggle.style.cssText = 'font-size:0.75rem;display:none;';
           repliesContainer.appendChild(bottomToggle);
 
           const collapseReplies = () => {
