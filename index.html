@@ -88,38 +88,48 @@
     .comment-thread { position: relative; }
     .comment-thread .thread-line { display: none; }
 
-    /* Replies toggle button */
-    .replies-toggle { appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.85rem; font-weight: 600; cursor: pointer; padding: 6px 0; border-radius: 16px; display: flex; align-items: center; gap: 4px; transition: background 0.15s; margin-top: 2px; margin-left: 48px; }
-    .replies-toggle:hover { background: rgba(147,179,230,0.08); padding: 6px 10px; margin-left: 38px; }
+    /* Top "Show X replies" toggle (no line, just text) */
+    .replies-toggle-top { appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.85rem; font-weight: 600; cursor: pointer; padding: 6px 0; display: flex; align-items: center; gap: 4px; transition: background 0.15s; margin-top: 2px; margin-left: 48px; border-radius: 16px; }
+    .replies-toggle-top:hover { background: rgba(147,179,230,0.08); padding: 6px 10px; margin-left: 38px; }
 
     /* Replies container */
-    .replies-container { margin-left: 18px; display: none; position: relative; }
+    .replies-container { margin-left: 17px; display: none; position: relative; }
     .replies-container.show { display: block; }
 
     /* Clickable collapse line running down the left side of all replies */
-    .replies-collapse-line { position: absolute; left: 0; top: 0; bottom: 0; width: 12px; cursor: pointer; z-index: 2; }
-    .replies-collapse-line::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; border-radius: 2px; transition: background 0.15s; }
+    .replies-collapse-line { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; cursor: pointer; z-index: 2; }
+    .replies-collapse-line::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; border-radius: 1px; transition: background 0.15s; }
     .replies-collapse-line:hover::after { background: #666; }
 
     /* Individual reply with curved L-connector */
-    .reply-wrapper { position: relative; padding-left: 30px; }
-    /* Curved L-connector only (no vertical line — the collapse-line handles that) */
-    .reply-wrapper::after { content: ''; position: absolute; left: 0; top: 14px; width: 20px; height: 10px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; border-top: none; border-right: none; }
-    .reply-wrapper .comment-main { padding: 6px 0 8px; }
+    .reply-wrapper { position: relative; padding-left: 28px; }
+    .reply-wrapper::before { content: ''; position: absolute; left: 0; top: 0; width: 2px; height: 18px; background: #333; }
+    .reply-wrapper::after { content: ''; position: absolute; left: 0; top: 18px; width: 16px; height: 2px; background: #333; border-radius: 0 0 0 6px; }
+    .reply-wrapper::before { border-radius: 0 0 0 6px; }
+    /* Use a single pseudo for the L-curve: vertical + horizontal with rounded corner */
+    .reply-wrapper::after { content: ''; position: absolute; left: 0; top: 4px; width: 16px; height: 16px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 10px; background: transparent; }
+    .reply-wrapper::before { display: none; }
+    .reply-wrapper .comment-main { padding: 4px 0 8px; }
     .reply-wrapper .comment-main img { width: 28px; height: 28px; }
 
-    /* Sub-reply show/hide toggle */
-    .subreply-toggle { appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.78rem; font-weight: 600; cursor: pointer; padding: 3px 0; border-radius: 14px; display: flex; align-items: center; gap: 4px; transition: background 0.15s; margin: 2px 0 2px 30px; }
-    .subreply-toggle:hover { background: rgba(147,179,230,0.08); padding: 3px 8px; margin-left: 22px; }
+    /* Bottom "Hide replies" toggle — sits inside the tree with its own L-curve */
+    .replies-toggle-bottom { position: relative; padding-left: 28px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.85rem; font-weight: 600; cursor: pointer; padding-top: 6px; padding-bottom: 6px; display: flex; align-items: center; border-radius: 16px; transition: background 0.15s; }
+    .replies-toggle-bottom::after { content: ''; position: absolute; left: 0; top: 2px; width: 16px; height: 14px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 10px; background: transparent; }
+    .replies-toggle-bottom:hover { background: rgba(147,179,230,0.08); }
+
+    /* Sub-reply show/hide toggle — also a tree item with L-curve */
+    .subreply-toggle { position: relative; padding-left: 28px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.78rem; font-weight: 600; cursor: pointer; padding-top: 4px; padding-bottom: 4px; display: flex; align-items: center; border-radius: 14px; transition: background 0.15s; margin: 0; }
+    .subreply-toggle::after { content: ''; position: absolute; left: 0; top: 0; width: 16px; height: 12px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 10px; background: transparent; }
+    .subreply-toggle:hover { background: rgba(147,179,230,0.08); }
 
     /* Sub-replies nested under a specific reply */
     .subreplies-container { margin-left: 0; display: none; position: relative; }
     .subreplies-container.show { display: block; }
-    .subreplies-collapse-line { position: absolute; left: 0; top: 0; bottom: 0; width: 12px; cursor: pointer; z-index: 2; }
-    .subreplies-collapse-line::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; border-radius: 2px; transition: background 0.15s; }
+    .subreplies-collapse-line { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; cursor: pointer; z-index: 2; }
+    .subreplies-collapse-line::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; border-radius: 1px; transition: background 0.15s; }
     .subreplies-collapse-line:hover::after { background: #666; }
-    .subreply-item { position: relative; padding-left: 30px; }
-    .subreply-item::after { content: ''; position: absolute; left: 0; top: 14px; width: 20px; height: 10px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; border-top: none; border-right: none; }
+    .subreply-item { position: relative; padding-left: 28px; }
+    .subreply-item::after { content: ''; position: absolute; left: 0; top: 2px; width: 16px; height: 14px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 10px; background: transparent; }
     .subreply-item .comment-main { padding: 4px 0 6px; }
     .subreply-item .comment-main img { width: 24px; height: 24px; }
 
@@ -462,22 +472,25 @@
         </div>`;
 
         if (c.replyCount > 0) {
-          html += `<button class="replies-toggle" data-comment-id="${c.id}">
+          html += `<button class="replies-toggle-top" data-comment-id="${c.id}">
             Show ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}
           </button>`;
           html += `<div class="replies-container" id="replies-${c.id}"></div>`;
-          html += `<button class="replies-toggle replies-toggle-bottom" data-comment-id="${c.id}" style="display:none;">
-            Hide replies
-          </button>`;
         }
 
         thread.innerHTML = html;
         container.appendChild(thread);
 
         if (c.replyCount > 0) {
-          const topToggle = thread.querySelectorAll('.replies-toggle')[0];
-          const bottomToggle = thread.querySelectorAll('.replies-toggle')[1];
+          const topToggle = thread.querySelector('.replies-toggle-top');
           const repliesContainer = thread.querySelector('.replies-container');
+          // Bottom toggle lives INSIDE the replies-container (appended after tree is built)
+          const bottomToggle = document.createElement('button');
+          bottomToggle.className = 'replies-toggle-bottom';
+          bottomToggle.dataset.commentId = c.id;
+          bottomToggle.textContent = 'Hide replies';
+          bottomToggle.style.display = 'none';
+          repliesContainer.appendChild(bottomToggle);
 
           const collapseReplies = () => {
             repliesContainer.classList.remove('show');
@@ -598,6 +611,7 @@
         wrapper.appendChild(el);
 
         if (subs.length > 0) {
+          // Sub-reply toggle sits inside the reply-wrapper as a tree item
           const subToggle = document.createElement('button');
           subToggle.className = 'subreply-toggle';
           subToggle.textContent = subs.length === 1 ? 'Show Reply' : `Show ${subs.length} Replies`;
@@ -617,6 +631,7 @@
           };
 
           subCollapseLine.addEventListener('click', toggleSubs);
+          subContainer.appendChild(subCollapseLine);
 
           subs.forEach(sr => {
             const subItem = document.createElement('div');
@@ -628,8 +643,6 @@
             subContainer.appendChild(subItem);
           });
 
-          subContainer.insertBefore(subCollapseLine, subContainer.firstChild);
-
           subToggle.addEventListener('click', toggleSubs);
           wrapper.appendChild(subToggle);
           wrapper.appendChild(subContainer);
@@ -637,6 +650,10 @@
 
         container.appendChild(wrapper);
       });
+
+      // Move the bottom toggle to the very end of the container (after all reply-wrappers)
+      const bottomToggle = container.querySelector('.replies-toggle-bottom');
+      if (bottomToggle) container.appendChild(bottomToggle);
     }
 
     function populatePanelComments() {
@@ -656,21 +673,23 @@
           </div>
         </div>`;
         if (c.replyCount > 0) {
-          html += `<button class="replies-toggle" data-comment-id="${c.id}" style="margin-left:40px;font-size:0.75rem;">
+          html += `<button class="replies-toggle-top" data-comment-id="${c.id}" style="margin-left:40px;font-size:0.75rem;">
             Show ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}
           </button>`;
           html += `<div class="replies-container" id="panel-replies-${c.id}" style="margin-left:40px;"></div>`;
-          html += `<button class="replies-toggle replies-toggle-bottom" data-comment-id="${c.id}" style="margin-left:40px;font-size:0.75rem;display:none;">
-            Hide replies
-          </button>`;
         }
         thread.innerHTML = html;
         container.appendChild(thread);
 
         if (c.replyCount > 0) {
-          const topToggle = thread.querySelectorAll('.replies-toggle')[0];
-          const bottomToggle = thread.querySelectorAll('.replies-toggle')[1];
+          const topToggle = thread.querySelector('.replies-toggle-top');
           const repliesContainer = thread.querySelector('.replies-container');
+          const bottomToggle = document.createElement('button');
+          bottomToggle.className = 'replies-toggle-bottom';
+          bottomToggle.dataset.commentId = c.id;
+          bottomToggle.textContent = 'Hide replies';
+          bottomToggle.style.cssText = 'margin-left:40px;font-size:0.75rem;display:none;';
+          repliesContainer.appendChild(bottomToggle);
 
           const collapseReplies = () => {
             repliesContainer.classList.remove('show');
