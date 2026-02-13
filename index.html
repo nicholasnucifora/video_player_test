@@ -518,6 +518,12 @@
     // Build a threaded reply tree with @mention-based nesting
     // Strips @mention from display text and nests under the mentioned person
     function buildReplyTree(replies, parentAuthor, container, collapseParent) {
+      // DEBUG: Show raw data so we can see what YouTube returns
+      const debugEl = document.createElement('details');
+      debugEl.style.cssText = 'margin:8px 0;padding:8px;background:#1a1a1a;border:1px solid #333;border-radius:6px;font-size:11px;color:#888;';
+      debugEl.innerHTML = `<summary style="cursor:pointer;color:#93b3e6;">🔍 Debug: raw reply data (click to expand)</summary><pre style="white-space:pre-wrap;margin-top:8px;max-height:300px;overflow:auto;">${escHtml(JSON.stringify(replies.map(r => ({ author: r.author, textOriginal: r.textOriginal, textStart: r.text.substring(0, 120) })), null, 2))}</pre><p style="margin-top:6px;">Parent author: "${escHtml(parentAuthor)}"</p>`;
+      container.appendChild(debugEl);
+
       // Add a clickable collapse line running down the left side
       const collapseLine = document.createElement('div');
       collapseLine.className = 'replies-collapse-line';
