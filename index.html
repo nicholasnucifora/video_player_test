@@ -175,7 +175,7 @@
   <div class="fullscreen-wrapper" id="fullscreenWrapper">
     <div class="theatre-row" id="theatreRow">
       <div class="player-col">
-        <media-player title="YouTube Video" src="youtube/YFjfBk8HI5o" poster="https://i.ytimg.com/vi/YFjfBk8HI5o/maxresdefault.jpg" crossorigin playsinline load="eager" autoplay>
+        <media-player title="YouTube Video" src="youtube/YFjfBk8HI5o" poster="https://i.ytimg.com/vi/YFjfBk8HI5o/maxresdefault.jpg" crossorigin playsinline load="eager">
           <media-provider></media-provider>
           <media-video-layout></media-video-layout>
 
@@ -342,6 +342,14 @@
         });
 
         player.addEventListener('media-fullscreen-request', (e) => { e.preventDefault(); e.stopPropagation(); document.fullscreenElement ? document.exitFullscreen() : wrapper.requestFullscreen(); });
+
+        // Autoplay only on desktop — mobile browsers block it and it causes infinite loading
+        if (!isMobile()) {
+          player.play().catch(() => {});
+        } else {
+          // On mobile, switch to lighter loading strategy
+          player.setAttribute('load', 'visible');
+        }
       });
     });
 
