@@ -47,9 +47,10 @@
     .chapter-info .chapter-label { font-size: 0.85rem; font-weight: 500; color: #eee; line-height: 1.3; margin-bottom: 2px; }
     .chapter-info .chapter-time { font-size: 0.78rem; color: #888; font-variant-numeric: tabular-nums; }
 
-    /* ── Kill Vidstack's entire chapters menu — we replace it with our own button ── */
+    /* ── Kill only Vidstack's chapters DROPDOWN (keep the button itself visible) ── */
     .vds-chapters-menu-items, .vds-chapters-radio-group, media-menu-items[class*="chapter"] { display: none !important; height: 0 !important; overflow: hidden !important; pointer-events: none !important; }
-    media-menu:has([class*="chapter"]), .vds-chapters-menu { display: none !important; width: 0 !important; height: 0 !important; overflow: hidden !important; pointer-events: none !important; }
+    /* Hide the popup/flyout but NOT the trigger button */
+    .vds-chapters-menu .vds-menu-items, .vds-chapters-menu [part="items"], .vds-chapters-menu media-menu-items { display: none !important; height: 0 !important; overflow: hidden !important; pointer-events: none !important; }
 
     /* ── Below-player ── */
     .below-player { max-width: 960px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
@@ -84,10 +85,9 @@
     .comment-main .meta { font-size: 0.75rem; color: #666; margin-top: 6px; display: flex; align-items: center; gap: 12px; }
 
     /* Thread line — YouTube-style rounded connector */
-    .comment-thread .thread-line { position: absolute; left: 17px; top: 60px; bottom: 8px; width: 2px; background: #333; cursor: pointer; transition: background 0.15s; border-radius: 4px; }
+    .comment-thread { position: relative; padding-left: 0; }
+    .comment-thread .thread-line { position: absolute; left: 17px; top: 60px; bottom: 0; width: 2px; background: #333; cursor: pointer; transition: background 0.15s; border-radius: 0 0 4px 4px; }
     .comment-thread .thread-line:hover { background: #555; }
-    .comment-thread .thread-line::after { content: ''; position: absolute; bottom: -2px; left: -1px; width: 4px; height: 4px; background: #333; border-radius: 50%; transition: background 0.15s; }
-    .comment-thread .thread-line:hover::after { background: #555; }
 
     /* Replies toggle button */
     .replies-toggle { appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.8rem; font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 16px; display: flex; align-items: center; gap: 4px; transition: background 0.15s; margin-top: 4px; margin-left: 48px; }
@@ -98,15 +98,24 @@
     /* Replies container */
     .replies-container { margin-left: 48px; display: none; }
     .replies-container.show { display: block; }
-    .replies-container .comment-main { padding: 8px 0; }
-    .replies-container .comment-main img { width: 28px; height: 28px; }
 
-    /* Sub-replies (nested replies within replies) */
-    .sub-reply-thread { position: relative; padding-left: 40px; }
-    .sub-reply-thread .thread-line-sub { position: absolute; left: 13px; top: 0; bottom: 8px; width: 2px; background: #2a2a2a; border-radius: 4px; cursor: pointer; transition: background 0.15s; }
-    .sub-reply-thread .thread-line-sub:hover { background: #444; }
-    .sub-reply-thread .thread-line-sub::after { content: ''; position: absolute; bottom: -2px; left: -1px; width: 4px; height: 4px; background: #2a2a2a; border-radius: 50%; transition: background 0.15s; }
-    .sub-reply-thread .thread-line-sub:hover::after { background: #444; }
+    /* Individual reply with its own thread line */
+    .reply-wrapper { position: relative; padding-left: 22px; }
+    .reply-wrapper .reply-thread-line { position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; cursor: pointer; transition: background 0.15s; border-radius: 4px; }
+    .reply-wrapper .reply-thread-line:hover { background: #555; }
+    .reply-wrapper:last-child .reply-thread-line { bottom: 50%; border-radius: 4px 4px 4px 4px; }
+    /* Horizontal connector from thread line to avatar */
+    .reply-wrapper .reply-connector { position: absolute; left: 0; top: 22px; width: 14px; height: 2px; background: #333; border-radius: 0 4px 4px 0; }
+    .reply-wrapper .comment-main { padding: 8px 0; }
+    .reply-wrapper .comment-main img { width: 28px; height: 28px; }
+
+    /* Sub-replies (nested deeper) */
+    .sub-replies-container { margin-left: 22px; display: none; }
+    .sub-replies-container.show { display: block; }
+    .sub-replies-toggle { appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.75rem; font-weight: 600; cursor: pointer; padding: 2px 6px; border-radius: 12px; display: flex; align-items: center; gap: 3px; transition: background 0.15s; margin-top: 2px; margin-left: 36px; }
+    .sub-replies-toggle:hover { background: rgba(147,179,230,0.1); }
+    .sub-replies-toggle svg { width: 14px; height: 14px; transition: transform 0.2s; }
+    .sub-replies-toggle.expanded svg { transform: rotate(180deg); }
 
     /* Mobile chapters section (below video) */
     .mobile-chapters-section { display: none; margin-bottom: 1.5rem; }
@@ -419,7 +428,7 @@
           injectChapterTrack(chapters);
           renderChaptersPanel(chapters);
           renderMobileChapters(chapters);
-          if (!isMobile()) interceptChaptersButton();
+          interceptChaptersButton();
           interceptCommentsButton();
         }
         else { interceptCommentsButton(); }
@@ -464,7 +473,6 @@
             if (repliesContainer.classList.contains('show')) {
               repliesContainer.classList.remove('show');
               toggleBtn.classList.remove('expanded');
-              threadLine.style.bottom = '0';
               return;
             }
             toggleBtn.classList.add('expanded');
@@ -477,11 +485,24 @@
                 const res = await fetch(`/api/video?id=${VIDEO_ID}&replies=${c.id}`);
                 const data = await res.json();
                 if (data.replies?.length) {
-                  data.replies.forEach(r => {
+                  data.replies.forEach((r, i) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'reply-wrapper';
+                    // Thread line for this reply
+                    const tl = document.createElement('div');
+                    tl.className = 'reply-thread-line';
+                    tl.addEventListener('click', () => toggleReplies());
+                    wrapper.appendChild(tl);
+                    // Horizontal connector
+                    const conn = document.createElement('div');
+                    conn.className = 'reply-connector';
+                    wrapper.appendChild(conn);
+                    // Comment content
                     const el = document.createElement('div');
                     el.className = 'comment-main';
                     el.innerHTML = `<img src="${r.avatar}" alt="" /><div class="comment-body"><div class="author">${escHtml(r.author)}</div><div class="text">${r.text}</div><div class="meta"><span>${r.likes ? '👍 ' + r.likes : ''}</span><span>${timeAgo(r.date)}</span></div></div>`;
-                    repliesContainer.appendChild(el);
+                    wrapper.appendChild(el);
+                    repliesContainer.appendChild(wrapper);
                   });
                 }
               } catch (err) { console.error('Failed to load replies:', err); }
@@ -499,11 +520,72 @@
     function populatePanelComments() {
       const container = document.getElementById('panelComments');
       container.innerHTML = '';
+      // Reuse the same comment rendering for the side panel
       allComments.forEach(c => {
-        const el = document.createElement('div');
-        el.className = 'panel-comment';
-        el.innerHTML = `<img src="${c.avatar}" alt="" /><div class="comment-body"><div class="author">${escHtml(c.author)}</div><div class="text">${c.text}</div><div class="meta">${c.likes ? '👍 ' + c.likes + ' · ' : ''}${timeAgo(c.date)}</div></div>`;
-        container.appendChild(el);
+        const thread = document.createElement('div');
+        thread.className = 'comment-thread';
+        thread.style.padding = '0 16px';
+        let html = `<div class="comment-main">
+          <img src="${c.avatar}" alt="" style="width:28px;height:28px;" />
+          <div class="comment-body">
+            <div class="author" style="font-size:0.8rem;">${escHtml(c.author)}</div>
+            <div class="text" style="font-size:0.8rem;">${c.text}</div>
+            <div class="meta">${c.likes ? '👍 ' + c.likes + ' · ' : ''}${timeAgo(c.date)}</div>
+          </div>
+        </div>`;
+        if (c.replyCount > 0) {
+          html += `<div class="thread-line" data-comment-id="${c.id}"></div>`;
+          html += `<button class="replies-toggle" data-comment-id="${c.id}" style="margin-left:40px;font-size:0.75rem;">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+            ${c.replyCount} ${c.replyCount === 1 ? 'reply' : 'replies'}
+          </button>`;
+          html += `<div class="replies-container" id="panel-replies-${c.id}" style="margin-left:40px;"></div>`;
+        }
+        thread.innerHTML = html;
+        container.appendChild(thread);
+
+        if (c.replyCount > 0) {
+          const toggleBtn = thread.querySelector('.replies-toggle');
+          const threadLine = thread.querySelector('.thread-line');
+          const repliesContainer = thread.querySelector('.replies-container');
+          const toggleReplies = async () => {
+            if (repliesContainer.classList.contains('show')) {
+              repliesContainer.classList.remove('show');
+              toggleBtn.classList.remove('expanded');
+              return;
+            }
+            toggleBtn.classList.add('expanded');
+            repliesContainer.classList.add('show');
+            if (!repliesContainer.hasChildNodes()) {
+              toggleBtn.disabled = true;
+              try {
+                const res = await fetch(`/api/video?id=${VIDEO_ID}&replies=${c.id}`);
+                const data = await res.json();
+                if (data.replies?.length) {
+                  data.replies.forEach(r => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'reply-wrapper';
+                    const tl = document.createElement('div');
+                    tl.className = 'reply-thread-line';
+                    tl.addEventListener('click', () => toggleReplies());
+                    wrapper.appendChild(tl);
+                    const conn = document.createElement('div');
+                    conn.className = 'reply-connector';
+                    wrapper.appendChild(conn);
+                    const el = document.createElement('div');
+                    el.className = 'comment-main';
+                    el.innerHTML = `<img src="${r.avatar}" alt="" style="width:24px;height:24px;" /><div class="comment-body"><div class="author" style="font-size:0.75rem;">${escHtml(r.author)}</div><div class="text" style="font-size:0.75rem;">${r.text}</div><div class="meta"><span>${r.likes ? '👍 ' + r.likes : ''}</span><span>${timeAgo(r.date)}</span></div></div>`;
+                    wrapper.appendChild(el);
+                    repliesContainer.appendChild(wrapper);
+                  });
+                }
+              } catch (err) { console.error(err); }
+              toggleBtn.disabled = false;
+            }
+          };
+          toggleBtn.addEventListener('click', toggleReplies);
+          threadLine.addEventListener('click', toggleReplies);
+        }
       });
     }
 
@@ -541,30 +623,39 @@
     }
 
     function interceptChaptersButton() {
-      // Inject a completely new chapters button — no cloning, no duplicates
+      // Intercept Vidstack's built-in chapters button: fix duplicate icon + redirect click to our panel
       customElements.whenDefined('media-player').then(() => {
         const player = document.querySelector('media-player');
         let attempts = 0;
         const poll = setInterval(() => {
-          const groups = player.querySelectorAll('.vds-controls-group');
-          const lastGroup = groups[groups.length - 1];
-          if (!lastGroup) { if (++attempts > 50) clearInterval(poll); return; }
-          if (lastGroup.querySelector('.custom-chapters-btn')) { clearInterval(poll); return; }
+          // Find the chapters media-menu
+          const chaptersMenu = player.querySelector('.vds-chapters-menu') || 
+            Array.from(player.querySelectorAll('media-menu')).find(m => m.querySelector('[class*="chapter"]'));
+          if (!chaptersMenu) { if (++attempts > 50) clearInterval(poll); return; }
+          
+          const menuBtn = chaptersMenu.querySelector('media-menu-button');
+          if (!menuBtn || menuBtn._chaptersIntercepted) { clearInterval(poll); return; }
+          menuBtn._chaptersIntercepted = true;
 
-          const btn = document.createElement('button');
-          btn.className = 'custom-chapters-btn';
-          btn.setAttribute('aria-label', 'Chapters');
-          btn.style.cssText = 'appearance:none;border:none;background:none;color:#fff;cursor:pointer;padding:7px;display:flex;align-items:center;opacity:0.8;transition:opacity 0.15s;';
-          btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>`;
-          btn.addEventListener('mouseenter', () => btn.style.opacity = '1');
-          btn.addEventListener('mouseleave', () => btn.style.opacity = '0.8');
-          btn.addEventListener('click', (e) => { e.stopPropagation(); e.stopImmediatePropagation(); openPanel('chapters'); }, true);
-          ['pointerdown','pointerup','mousedown','mouseup'].forEach(evt => { btn.addEventListener(evt, (e) => { e.stopPropagation(); e.stopImmediatePropagation(); }, true); });
+          // Fix duplicate icon: strip all children and put a single clean icon
+          menuBtn.innerHTML = '';
+          const icon = document.createElement('div');
+          icon.style.cssText = 'display:flex;align-items:center;justify-content:center;padding:7px;';
+          icon.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>`;
+          menuBtn.appendChild(icon);
 
-          // Insert before fullscreen button
-          const fsBtn = lastGroup.querySelector('media-fullscreen-button');
-          if (fsBtn) lastGroup.insertBefore(btn, fsBtn);
-          else lastGroup.appendChild(btn);
+          // Block the default menu open behavior, redirect to our side panel
+          menuBtn.addEventListener('click', (e) => {
+            e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+            // Force close any open menu
+            chaptersMenu.removeAttribute('open');
+            chaptersMenu.removeAttribute('data-open');
+            openPanel('chapters');
+          }, true);
+          ['pointerdown','pointerup','mousedown','mouseup'].forEach(evt => {
+            menuBtn.addEventListener(evt, (e) => { e.stopPropagation(); e.stopImmediatePropagation(); }, true);
+          });
+
           clearInterval(poll);
         }, 200);
       });
