@@ -196,21 +196,54 @@
 
     .custom-actions button {
       appearance: none;
-      border: none;
-      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
       padding: 8px 20px;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: opacity 0.2s, transform 0.15s;
+      transition: opacity 0.2s, transform 0.15s, background 0.2s;
       line-height: 1;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
     }
 
-    .custom-actions button:hover { opacity: 0.85; transform: scale(1.05); }
+    .custom-actions button:hover { opacity: 0.9; transform: scale(1.05); }
     .custom-actions button:active { transform: scale(0.96); }
-    .btn-save { background: #2563eb; color: #fff; }
-    .btn-finish { background: #16a34a; color: #fff; }
+    .btn-save { background: rgba(37,99,235,0.45); color: #fff; }
+    .btn-save:hover { background: rgba(37,99,235,0.6); }
+    .btn-finish { background: rgba(22,163,74,0.45); color: #fff; }
+    .btn-finish:hover { background: rgba(22,163,74,0.6); }
+
+    /* ── Play/Pause overlay icon ── */
+    .play-pause-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.5);
+      z-index: 60;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+
+    .play-pause-overlay.visible {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .play-pause-overlay.fade-out {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(1.3);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .play-pause-overlay svg {
+      width: 72px;
+      height: 72px;
+      filter: drop-shadow(0 2px 12px rgba(0,0,0,0.5));
+    }
 
     /* ── Chapters list (below player, outside fullscreen) ── */
     .chapters-section { margin-top: 1.5rem; }
@@ -249,6 +282,9 @@
           <button class="btn-save" id="saveBtn" type="button">Save Progress</button>
           <button class="btn-finish" id="finishBtn" type="button">Finish</button>
         </div>
+
+        <!-- Play/Pause overlay icon -->
+        <div class="play-pause-overlay" id="playPauseOverlay"></div>
       </media-player>
 
       <!-- Fullscreen scroll content: video info + comments -->
@@ -312,7 +348,60 @@
       customElements.whenDefined('media-player').then(() => {
         const player = document.querySelector('media-player');
         const wrapper = document.getElementById('fullscreenWrapper');
+        const overlay = document.getElementById('playPauseOverlay');
 
+        // SVG icons
+        const playSVG = `<svg viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>`;
+        const pauseSVG = `<svg viewBox="0 0 24 24" fill="white"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+
+        // Show overlay with animation
+        let overlayTimer = null;
+        function flashOverlay(isPlaying) {
+          overlay.innerHTML = isPlaying ? pauseSVG : playSVG;
+          overlay.classList.remove('fade-out');
+          overlay.classList.add('visible');
+          clearTimeout(overlayTimer);
+          overlayTimer = setTimeout(() => {
+            overlay.classList.remove('visible');
+            overlay.classList.add('fade-out');
+          }, 300);
+        }
+
+        // Toggle play/pause
+        function togglePlay() {
+          if (player.paused) {
+            player.play();
+            flashOverlay(true);
+          } else {
+            player.pause();
+            flashOverlay(false);
+          }
+        }
+
+        // Click/tap on the video area to toggle play (mobile fix)
+        player.addEventListener('pointerup', (e) => {
+          // Ignore clicks on controls, buttons, or interactive elements
+          const target = e.target;
+          if (target.closest('.custom-actions') ||
+              target.closest('media-controls') ||
+              target.closest('media-video-layout') && target.closest('button, [role="slider"], media-menu, media-tooltip')) {
+            return;
+          }
+          // Only handle clicks on the provider / gesture area
+          if (target.closest('media-provider') || target.closest('media-gesture') || target === player) {
+            togglePlay();
+          }
+        });
+
+        // Spacebar to toggle play/pause + show overlay
+        document.addEventListener('keydown', (e) => {
+          if (e.code === 'Space' && !e.target.matches('input, textarea, button, [contenteditable]')) {
+            e.preventDefault();
+            togglePlay();
+          }
+        });
+
+        // Fullscreen override
         player.addEventListener('media-fullscreen-request', (e) => {
           e.preventDefault();
           e.stopPropagation();
