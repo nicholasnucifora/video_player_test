@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vidstack Player Playground</title>
+  <link rel="stylesheet" href="https://cdn.vidstack.io/player/theme.css" />
+  <link rel="stylesheet" href="https://cdn.vidstack.io/player/video.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0f0f0f;
+      color: #fff;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: start;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .player-wrapper {
+      width: 100%;
+      max-width: 960px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-weight: 500;
+      font-size: 1.25rem;
+      color: #aaa;
+    }
+
+    /* ── Fullscreen wrapper ── */
+    .fullscreen-wrapper {
+      position: relative;
+      background: #0f0f0f;
+    }
+
+    .fullscreen-wrapper:fullscreen {
+      overflow-y: auto;
+      background: #0f0f0f;
+    }
+
+    .fullscreen-wrapper:fullscreen media-player {
+      width: 100%;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    /* ── Below-player content (visible in fullscreen scroll) ── */
+    .fs-content {
+      display: none;
+      padding: 1.5rem 2rem 3rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .fullscreen-wrapper:fullscreen .fs-content {
+      display: block;
+    }
+
+    /* ── Video info bar ── */
+    .video-info {
+      margin-bottom: 1.5rem;
+    }
+
+    .video-info .video-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      line-height: 1.4;
+    }
+
+    .channel-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1rem;
+    }
+
+    .channel-row img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .channel-row .channel-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .description-box {
+      background: #1a1a1a;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .description-box:hover { background: #222; }
+
+    .description-box .desc-preview {
+      font-size: 0.85rem;
+      color: #aaa;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .description-box.expanded .desc-preview {
+      -webkit-line-clamp: unset;
+      white-space: pre-wrap;
+    }
+
+    .description-box .desc-toggle {
+      font-size: 0.8rem;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    /* ── Comments ── */
+    .comments-section h2 {
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    .comment {
+      display: flex;
+      gap: 12px;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid #1a1a1a;
+    }
+
+    .comment img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .comment .comment-body { flex: 1; min-width: 0; }
+    .comment .author { font-weight: 600; font-size: 0.85rem; margin-bottom: 2px; }
+    .comment .text { font-size: 0.85rem; color: #ccc; line-height: 1.5; word-wrap: break-word; }
+    .comment .meta { font-size: 0.75rem; color: #666; margin-top: 4px; }
+
+    /* ── Scroll hint ── */
+    .scroll-hint {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.12);
+      backdrop-filter: blur(6px);
+      border-radius: 20px;
+      padding: 6px 18px;
+      font-size: 13px;
+      color: #ccc;
+      z-index: 100;
+      cursor: pointer;
+      animation: bounce 2s infinite;
+    }
+
+    .fullscreen-wrapper:fullscreen .scroll-hint { display: block; }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-6px); }
+    }
+
+    /* ── Custom overlay buttons ── */
+    .custom-actions {
+      position: absolute;
+      bottom: 85px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 50;
+      pointer-events: auto;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    media-player[data-controls] .custom-actions { opacity: 1; }
+
+    .custom-actions button {
+      appearance: none;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      line-height: 1;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+
+    .custom-actions button:hover { opacity: 0.85; transform: scale(1.05); }
+    .custom-actions button:active { transform: scale(0.96); }
+    .btn-save { background: #2563eb; color: #fff; }
+    .btn-finish { background: #16a34a; color: #fff; }
+
+    /* ── Chapters list (below player, outside fullscreen) ── */
+    .chapters-section { margin-top: 1.5rem; }
+    .chapters-section h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: #aaa; }
+
+    .chapter-item {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .chapter-item:hover { background: #1a1a1a; }
+    .chapter-item .time { color: #3b82f6; font-size: 0.85rem; font-variant-numeric: tabular-nums; min-width: 50px; }
+    .chapter-item .label { font-size: 0.9rem; color: #ddd; }
+  </style>
+</head>
+<body>
+  <div class="player-wrapper">
+    <h1>Vidstack Player Playground</h1>
+
+    <div class="fullscreen-wrapper" id="fullscreenWrapper">
+      <media-player
+        title="YouTube Video"
+        src="youtube/YFjfBk8HI5o"
+        crossorigin
+        playsinline
+      >
+        <media-provider></media-provider>
+        <media-video-layout></media-video-layout>
+
+        <div class="custom-actions">
+          <button class="btn-save" id="saveBtn" type="button">Save Progress</button>
+          <button class="btn-finish" id="finishBtn" type="button">Finish</button>
+        </div>
+      </media-player>
+
+      <!-- Fullscreen scroll content: video info + comments -->
+      <div class="fs-content">
+        <div class="video-info" id="videoInfo">
+          <div class="video-title" id="videoTitle">Loading...</div>
+          <div class="channel-row" id="channelRow" style="display:none;">
+            <img id="channelAvatar" src="" alt="Channel avatar" />
+            <span class="channel-name" id="channelName"></span>
+          </div>
+          <div class="description-box" id="descBox">
+            <div class="desc-preview" id="descText"></div>
+            <div class="desc-toggle" id="descToggle">Show more</div>
+          </div>
+        </div>
+
+        <div class="comments-section">
+          <h2 id="commentsHeading">Comments</h2>
+          <div id="commentsList"></div>
+        </div>
+      </div>
+
+      <div class="scroll-hint" id="scrollHint">↓ Scroll for comments</div>
+    </div>
+
+    <div class="chapters-section" id="chaptersSection" style="display:none;">
+      <h2>Chapters</h2>
+      <div id="chaptersList"></div>
+    </div>
+  </div>
+
+  <script type="module" src="https://cdn.vidstack.io/player"></script>
+
+  <script>
+    const VIDEO_ID = 'YFjfBk8HI5o';
+
+    // ── Button handlers ──
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      const player = document.querySelector('media-player');
+      const time = player?.currentTime ?? 0;
+      const formatted = new Date(time * 1000).toISOString().substring(11, 19);
+      alert(`Progress saved at ${formatted}`);
+    });
+
+    document.getElementById('finishBtn').addEventListener('click', () => {
+      if (confirm('Mark this video as finished?')) {
+        alert('Video marked as finished!');
+      }
+    });
+
+    // ── Description expand/collapse ──
+    document.getElementById('descBox').addEventListener('click', () => {
+      const box = document.getElementById('descBox');
+      const toggle = document.getElementById('descToggle');
+      box.classList.toggle('expanded');
+      toggle.textContent = box.classList.contains('expanded') ? 'Show less' : 'Show more';
+    });
+
+    // ── Fullscreen override ──
+    document.addEventListener('DOMContentLoaded', () => {
+      customElements.whenDefined('media-player').then(() => {
+        const player = document.querySelector('media-player');
+        const wrapper = document.getElementById('fullscreenWrapper');
+
+        player.addEventListener('media-fullscreen-request', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!document.fullscreenElement) {
+            wrapper.requestFullscreen();
+          } else {
+            document.exitFullscreen();
+          }
+        });
+      });
+
+      const wrapper = document.getElementById('fullscreenWrapper');
+      wrapper.addEventListener('scroll', () => {
+        const hint = document.getElementById('scrollHint');
+        if (wrapper.scrollTop > 50) hint.style.display = 'none';
+      });
+    });
+
+    // ── Load video data from our API proxy ──
+    async function loadVideoData() {
+      try {
+        const res = await fetch(`/api/video?id=${VIDEO_ID}`);
+        if (!res.ok) {
+          console.warn('API returned', res.status);
+          return;
+        }
+        const data = await res.json();
+
+        // Title
+        document.getElementById('videoTitle').textContent = data.title;
+
+        // Channel
+        if (data.channelTitle) {
+          document.getElementById('channelRow').style.display = 'flex';
+          document.getElementById('channelName').textContent = data.channelTitle;
+          if (data.channelAvatar) {
+            document.getElementById('channelAvatar').src = data.channelAvatar;
+          }
+        }
+
+        // Description
+        document.getElementById('descText').textContent = data.description || 'No description.';
+
+        // Comments
+        const list = document.getElementById('commentsList');
+        if (data.comments?.length) {
+          document.getElementById('commentsHeading').textContent = `Comments (${data.comments.length})`;
+          data.comments.forEach(c => {
+            const el = document.createElement('div');
+            el.className = 'comment';
+            const ago = timeAgo(c.date);
+            el.innerHTML = `
+              <img src="${c.avatar}" alt="" />
+              <div class="comment-body">
+                <div class="author">${escHtml(c.author)}</div>
+                <div class="text">${c.text}</div>
+                <div class="meta">${c.likes ? c.likes + ' likes · ' : ''}${ago}</div>
+              </div>
+            `;
+            list.appendChild(el);
+          });
+        }
+
+        // Chapters from description
+        const chapters = parseChapters(data.description, parseDuration(data.duration));
+        if (chapters.length > 0) {
+          injectChapterTrack(chapters);
+          renderChapterList(chapters);
+        }
+      } catch (err) {
+        console.error('Failed to load video data:', err);
+      }
+    }
+
+    // ── Chapter parsing ──
+    function parseChapters(description, totalDuration) {
+      // Match "0:00 Title", "1:23:45 Title", "0:00 - Title" etc.
+      const regex = /^[\s]*(\d{1,2}:\d{2}(?::\d{2})?)\s*[-–—).\]]*\s*(.+)$/gm;
+      const chapters = [];
+      let match;
+      while ((match = regex.exec(description)) !== null) {
+        const time = match[1].trim();
+        const label = match[2].trim();
+        const seconds = timeToSeconds(time);
+        chapters.push({ time, label, seconds });
+      }
+      // Need at least 3 timestamps to count as chapters (YouTube's own rule)
+      if (chapters.length < 3) return [];
+      // Must start at 0:00
+      if (chapters[0].seconds !== 0) return [];
+      for (let i = 0; i < chapters.length; i++) {
+        chapters[i].end = i < chapters.length - 1 ? chapters[i + 1].seconds : totalDuration;
+      }
+      return chapters;
+    }
+
+    function timeToSeconds(t) {
+      const parts = t.split(':').map(Number);
+      if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+      return parts[0] * 60 + parts[1];
+    }
+
+    function parseDuration(iso) {
+      const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+      if (!m) return 0;
+      return (parseInt(m[1] || 0) * 3600) + (parseInt(m[2] || 0) * 60) + parseInt(m[3] || 0);
+    }
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function secsToVTT(s) {
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = Math.floor(s % 60);
+      return `${pad(h)}:${pad(m)}:${pad(sec)}.000`;
+    }
+
+    function injectChapterTrack(chapters) {
+      let vtt = 'WEBVTT\n\n';
+      chapters.forEach(ch => {
+        vtt += `${secsToVTT(ch.seconds)} --> ${secsToVTT(ch.end)}\n${ch.label}\n\n`;
+      });
+      const blob = new Blob([vtt], { type: 'text/vtt' });
+      const url = URL.createObjectURL(blob);
+
+      customElements.whenDefined('media-player').then(() => {
+        const track = document.createElement('track');
+        track.kind = 'chapters';
+        track.src = url;
+        track.default = true;
+        document.querySelector('media-provider').appendChild(track);
+      });
+    }
+
+    function renderChapterList(chapters) {
+      const section = document.getElementById('chaptersSection');
+      const list = document.getElementById('chaptersList');
+      section.style.display = 'block';
+      chapters.forEach(ch => {
+        const item = document.createElement('div');
+        item.className = 'chapter-item';
+        item.innerHTML = `<span class="time">${ch.time}</span><span class="label">${escHtml(ch.label)}</span>`;
+        item.addEventListener('click', () => {
+          const player = document.querySelector('media-player');
+          if (player) player.currentTime = ch.seconds;
+        });
+        list.appendChild(item);
+      });
+    }
+
+    // ── Helpers ──
+    function escHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function timeAgo(dateStr) {
+      const diff = Date.now() - new Date(dateStr).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 60) return `${mins}m ago`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return `${hrs}h ago`;
+      const days = Math.floor(hrs / 24);
+      if (days < 30) return `${days}d ago`;
+      const months = Math.floor(days / 30);
+      if (months < 12) return `${months}mo ago`;
+      return `${Math.floor(months / 12)}y ago`;
+    }
+
+    loadVideoData();
+  </script>
+</body>
+</html>
