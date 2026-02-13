@@ -303,19 +303,6 @@
             <svg class="mobile-pause-icon" viewBox="0 0 24 24" fill="white" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
           </button>
 
-          <!-- Side panel inside media-player so it's visible in native fullscreen -->
-          <div class="side-panel" id="sidePanel">
-            <div class="side-panel-header">
-              <h3 id="sidePanelTitle">In this video</h3>
-              <button class="side-panel-close" id="sidePanelClose" type="button" aria-label="Close panel">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-              </button>
-            </div>
-            <div class="side-panel-body">
-              <div class="panel-content active" id="panelChapters"></div>
-              <div class="panel-content" id="panelComments"></div>
-            </div>
-          </div>
         </media-player>
       </div>
     </div>
@@ -351,11 +338,47 @@
     const isMobile = () => window.matchMedia('(pointer: coarse)').matches;
 
     // ── Side panel (shared chapters + comments) ──
-    const sidePanel = document.getElementById('sidePanel');
-    const sidePanelTitle = document.getElementById('sidePanelTitle');
-    const panelChapters = document.getElementById('panelChapters');
-    const panelComments = document.getElementById('panelComments');
+    let sidePanel, sidePanelTitle, panelChapters, panelComments;
     let currentPanel = null; // 'chapters' | 'comments' | null
+    let sidePanelReady = false;
+
+    function ensureSidePanel() {
+      if (sidePanelReady) return true;
+      const player = document.querySelector('media-player');
+      if (!player) return false;
+      // Check if already injected
+      if (player.querySelector('#sidePanel')) {
+        sidePanel = player.querySelector('#sidePanel');
+        sidePanelTitle = player.querySelector('#sidePanelTitle');
+        panelChapters = player.querySelector('#panelChapters');
+        panelComments = player.querySelector('#panelComments');
+        sidePanelReady = true;
+        return true;
+      }
+      // Create and inject into media-player
+      const div = document.createElement('div');
+      div.className = 'side-panel';
+      div.id = 'sidePanel';
+      div.innerHTML = `<div class="side-panel-header">
+        <h3 id="sidePanelTitle">In this video</h3>
+        <button class="side-panel-close" id="sidePanelClose" type="button" aria-label="Close panel">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <div class="side-panel-body">
+        <div class="panel-content active" id="panelChapters"></div>
+        <div class="panel-content" id="panelComments"></div>
+      </div>`;
+      player.appendChild(div);
+      sidePanel = div;
+      sidePanelTitle = div.querySelector('#sidePanelTitle');
+      panelChapters = div.querySelector('#panelChapters');
+      panelComments = div.querySelector('#panelComments');
+      div.querySelector('#sidePanelClose').addEventListener('click', closePanel);
+      sidePanelReady = true;
+      console.log('Side panel injected into media-player');
+      return true;
+    }
 
     function openPanel(type) {
       // On mobile (not fullscreen), chapters/comments are below the video — scroll to them
@@ -369,6 +392,7 @@
         }
         return;
       }
+      if (!ensureSidePanel()) return;
       if (currentPanel === type) { closePanel(); return; }
       currentPanel = type;
       sidePanel.classList.add('open');
@@ -386,12 +410,10 @@
     }
 
     function closePanel() {
-      sidePanel.classList.remove('open');
+      if (sidePanel) sidePanel.classList.remove('open');
       document.querySelector('media-player')?.classList.remove('panel-open');
       currentPanel = null;
     }
-
-    document.getElementById('sidePanelClose').addEventListener('click', closePanel);
 
     // ── Button handlers ──
     document.getElementById('saveBtn').addEventListener('click', (e) => {
@@ -936,7 +958,9 @@
     }
 
     function populatePanelComments() {
+      ensureSidePanel();
       const container = document.getElementById('panelComments');
+      if (!container) return;
       container.innerHTML = '';
       // Reuse the same comment rendering — panel uses slightly smaller sizes via panel-specific CSS
       allComments.forEach(c => {
@@ -1181,7 +1205,9 @@
     }
 
     function renderChaptersPanel(chapters) {
+      ensureSidePanel();
       const list = document.getElementById('panelChapters');
+      if (!list) return;
       list.innerHTML = '';
       const thumb = `https://i.ytimg.com/vi/${VIDEO_ID}/mqdefault.jpg`;
       chapters.forEach(ch => {
