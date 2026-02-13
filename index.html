@@ -27,11 +27,14 @@
       min-width: 0;
       position: relative;
       background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     media-player {
       width: 100%;
-      aspect-ratio: 16/9;
+      max-height: 100vh;
       display: block;
     }
 
@@ -128,29 +131,7 @@
     .chapter-info .chapter-label { font-size: 0.85rem; font-weight: 500; color: #eee; line-height: 1.3; margin-bottom: 2px; }
     .chapter-info .chapter-time { font-size: 0.78rem; color: #888; font-variant-numeric: tabular-nums; }
 
-    /* ── Chapters toggle button (injected into Vidstack control bar) ── */
-    .vds-chapters-btn {
-      appearance: none;
-      border: none;
-      background: none;
-      color: #fff;
-      cursor: pointer;
-      padding: 6px;
-      border-radius: 4px;
-      display: none; /* shown via JS when chapters exist */
-      align-items: center;
-      justify-content: center;
-      opacity: 0.8;
-      transition: opacity 0.15s;
-    }
-    .vds-chapters-btn:hover { opacity: 1; }
-    .vds-chapters-btn svg { width: 24px; height: 24px; }
-
-    /* ── Hide Vidstack's built-in chapters menu button ── */
-    media-chapter-title,
-    [data-media-button="chapters"],
-    media-menu[data-chapters],
-    .vds-chapter-title { display: none !important; }
+    /* ── We intercept Vidstack's chapters button click to open our panel ── */
 
     /* ── Below-player content ── */
     .below-player { max-width: 960px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
@@ -520,49 +501,47 @@
         if (chapters.length > 0) {
           injectChapterTrack(chapters);
           renderChaptersPanel(chapters);
-          injectChaptersButton();
+          interceptChaptersButton();
         }
       } catch (err) { console.error('Failed to load video data:', err); }
     }
 
-    function injectChaptersButton() {
+    function interceptChaptersButton() {
+      // Intercept clicks on Vidstack's native chapters button to open our side panel instead
       customElements.whenDefined('media-player').then(() => {
-        // Find the right-side controls group in Vidstack's layout
-        // Look for the settings menu or fullscreen button to insert before
         const player = document.querySelector('media-player');
-        const controlsGroup = player.querySelector('.vds-controls-group:last-child') ||
-                              player.querySelector('media-controls .vds-controls-group:nth-child(3)');
 
-        if (!controlsGroup) {
-          // Fallback: try to find any controls group on the right
-          const allGroups = player.querySelectorAll('.vds-controls-group');
-          const target = allGroups[allGroups.length - 1];
-          if (!target) return;
-          insertBtn(target);
-        } else {
-          insertBtn(controlsGroup);
-        }
+        // Use a MutationObserver to catch when Vidstack renders its controls
+        const observer = new MutationObserver(() => {
+          // Look for the chapters menu or button in Vidstack's shadow DOM / light DOM
+          const chapBtn = player.querySelector('.vds-chapters-menu-button, [data-media-button="chapters"], media-menu-button');
+          if (!chapBtn) return;
 
-        function insertBtn(group) {
-          const btn = document.createElement('button');
-          btn.className = 'vds-chapters-btn';
-          btn.setAttribute('aria-label', 'Chapters');
-          btn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>`;
-          btn.style.display = 'flex';
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            toggleChaptersPanel();
+          // Find all menu buttons — the chapters one typically has a specific icon
+          const menuButtons = player.querySelectorAll('media-menu');
+          menuButtons.forEach(menu => {
+            const btn = menu.querySelector('media-menu-button');
+            if (!btn) return;
+
+            // Check if this menu contains chapter items
+            const hasChapters = menu.querySelector('.vds-chapters-menu-items, .vds-chapter-radio-group, [class*="chapter"]');
+            if (hasChapters) {
+              // Prevent the default menu from opening, open our panel instead
+              btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                // Close any open Vidstack menus
+                menu.removeAttribute('open');
+                toggleChaptersPanel();
+              }, true);
+            }
           });
 
-          // Insert before the fullscreen button or settings
-          const fsBtn = group.querySelector('media-fullscreen-button') ||
-                        group.querySelector('[data-media-button="fullscreen"]');
-          if (fsBtn) {
-            group.insertBefore(btn, fsBtn);
-          } else {
-            group.appendChild(btn);
-          }
-        }
+          observer.disconnect();
+        });
+
+        observer.observe(player, { childList: true, subtree: true });
       });
     }
 
