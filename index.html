@@ -117,7 +117,9 @@
 
     /* Sub-thread stem — connects reply avatar down to sub-replies when expanded */
     /* Height set dynamically via JS */
-    .reply-wrapper .subreply-stem { display: none; position: absolute; left: 14px; top: 32px; width: 20px; cursor: pointer; z-index: 1; }
+    /* Sub-thread stem — connects reply avatar down to sub-replies when expanded */
+    /* left = padding-left (22px) + half avatar (14px) = 36px from wrapper edge = aligned with reply avatar center */
+    .reply-wrapper .subreply-stem { display: none; position: absolute; left: 36px; top: 32px; width: 20px; cursor: pointer; z-index: 1; }
     .reply-wrapper .subreply-stem::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; transition: background 0.15s; }
     .reply-wrapper.has-subreplies-open .subreply-stem { display: block; }
     /* Hover on sub-stem OR sub-collapse line highlights both */
@@ -129,12 +131,14 @@
     .replies-toggle-bottom::after { content: ''; position: absolute; left: 0; top: 0; width: 14px; height: 14px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
     .replies-toggle-bottom:hover { background: rgba(147,179,230,0.1); }
 
-    /* Sub-reply show/hide toggle — tree item with L-curve */
-    .subreply-toggle { position: relative; padding-left: 22px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.88rem; font-weight: 600; cursor: pointer; padding-top: 4px; padding-bottom: 4px; display: flex; align-items: center; border-radius: 18px; transition: background 0.15s; margin: 0; }
+    /* Sub-reply show/hide toggle — indented to align L-curve with reply avatar center */
+    /* margin-left: 14px puts the toggle's left:0 at 22+14=36px from wrapper = avatar center */
+    .subreply-toggle { position: relative; margin-left: 14px; padding-left: 22px; appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.88rem; font-weight: 600; cursor: pointer; padding-top: 4px; padding-bottom: 4px; display: flex; align-items: center; border-radius: 18px; transition: background 0.15s; }
     .subreply-toggle::after { content: ''; position: absolute; left: 0; top: 0; width: 14px; height: 14px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; background: transparent; }
     .subreply-toggle:hover { background: rgba(147,179,230,0.1); }
 
     /* Sub-replies nested under a specific reply */
+    /* margin-left: 14px aligns the sub-collapse line (left:0) with reply avatar center */
     .subreplies-container { margin-left: 14px; display: none; position: relative; }
     .subreplies-container.show { display: block; }
     /* Sub-collapse line stops before the bottom sub-toggle */
