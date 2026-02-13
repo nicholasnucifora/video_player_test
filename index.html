@@ -245,9 +245,25 @@
     }
 
     .play-pause-overlay svg {
-      width: 72px;
-      height: 72px;
+      width: clamp(48px, 10vw, 72px);
+      height: clamp(48px, 10vw, 72px);
       filter: drop-shadow(0 2px 12px rgba(0,0,0,0.5));
+    }
+
+    /* ── Disable Vidstack built-in gestures (we handle play/pause ourselves) ── */
+    media-gesture { display: none !important; pointer-events: none !important; }
+
+    /* ── Responsive buttons ── */
+    @media (max-width: 600px) {
+      .custom-actions {
+        bottom: 70px;
+        gap: 6px;
+      }
+      .custom-actions button {
+        padding: 6px 12px;
+        font-size: 12px;
+        border-radius: 8px;
+      }
     }
 
     /* ── Chapters list (below player, outside fullscreen) ── */
@@ -386,18 +402,18 @@
         }
 
         // Click/tap on the video area to toggle play (mobile fix)
-        player.addEventListener('pointerup', (e) => {
-          // Ignore clicks on controls, buttons, or interactive elements
+        // We disabled Vidstack's <media-gesture> via CSS so only this handler runs.
+        player.addEventListener('click', (e) => {
           const target = e.target;
+          // Ignore clicks on controls, buttons, sliders, menus
           if (target.closest('.custom-actions') ||
               target.closest('media-controls') ||
-              target.closest('media-video-layout') && target.closest('button, [role="slider"], media-menu, media-tooltip')) {
+              target.closest('button') ||
+              target.closest('[role="slider"]') ||
+              target.closest('media-menu')) {
             return;
           }
-          // Only handle clicks on the provider / gesture area
-          if (target.closest('media-provider') || target.closest('media-gesture') || target === player) {
-            togglePlay();
-          }
+          togglePlay();
         });
 
         // Spacebar to toggle play/pause + show overlay
