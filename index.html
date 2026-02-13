@@ -85,8 +85,8 @@
     .comment-main .meta { font-size: 0.75rem; color: #666; margin-top: 6px; display: flex; align-items: center; gap: 12px; }
 
     /* Thread line — from top-level comment avatar down to replies area */
-    .comment-thread { position: relative; padding-left: 0; }
-    .comment-thread .thread-line { position: absolute; left: 17px; top: 60px; bottom: 0; width: 2px; background: #333; cursor: pointer; transition: background 0.15s; border-radius: 0 0 2px 2px; }
+    .comment-thread { position: relative; }
+    .comment-thread .thread-line { position: absolute; left: 17px; top: 60px; bottom: 0; width: 2px; background: #333; cursor: pointer; transition: background 0.15s; }
     .comment-thread .thread-line:hover { background: #555; }
 
     /* Replies toggle button */
@@ -96,19 +96,36 @@
     .replies-toggle.expanded svg { transform: rotate(180deg); }
 
     /* Replies container */
-    .replies-container { margin-left: 48px; display: none; }
+    .replies-container { margin-left: 20px; display: none; }
     .replies-container.show { display: block; }
 
     /* Individual reply with curved L-shaped connector */
-    .reply-wrapper { position: relative; padding-left: 28px; min-height: 40px; }
-    /* Vertical line segment continuing down */
+    .reply-wrapper { position: relative; padding-left: 30px; }
+    /* Vertical line continuing down to next reply */
     .reply-wrapper::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; }
-    /* Last reply: vertical line stops at the curve */
-    .reply-wrapper:last-child::before { bottom: auto; height: 20px; }
-    /* Curved L-connector: vertical-to-horizontal with rounded corner */
-    .reply-wrapper::after { content: ''; position: absolute; left: 0; top: 12px; width: 18px; height: 12px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; border-top: none; border-right: none; }
-    .reply-wrapper .comment-main { padding: 4px 0 10px; }
+    /* Last child: line only goes to the curve */
+    .reply-wrapper:last-child::before { bottom: auto; height: 22px; }
+    /* Curved L-connector */
+    .reply-wrapper::after { content: ''; position: absolute; left: 0; top: 14px; width: 20px; height: 10px; border-left: 2px solid #333; border-bottom: 2px solid #333; border-radius: 0 0 0 12px; border-top: none; border-right: none; }
+    .reply-wrapper .comment-main { padding: 6px 0 8px; }
     .reply-wrapper .comment-main img { width: 28px; height: 28px; }
+
+    /* Sub-reply show/hide toggle */
+    .subreply-toggle { appearance: none; border: none; background: none; color: #93b3e6; font-size: 0.78rem; font-weight: 600; cursor: pointer; padding: 3px 8px; border-radius: 14px; display: flex; align-items: center; gap: 4px; transition: background 0.15s; margin: 2px 0 2px 30px; }
+    .subreply-toggle:hover { background: rgba(147,179,230,0.1); }
+
+    /* Sub-replies nested under a specific reply */
+    .subreplies-container { margin-left: 30px; display: none; }
+    .subreplies-container.show { display: block; }
+    .subreply-item { position: relative; padding-left: 30px; }
+    .subreply-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #2a2a2a; }
+    .subreply-item:last-child::before { bottom: auto; height: 22px; }
+    .subreply-item::after { content: ''; position: absolute; left: 0; top: 14px; width: 20px; height: 10px; border-left: 2px solid #2a2a2a; border-bottom: 2px solid #2a2a2a; border-radius: 0 0 0 12px; border-top: none; border-right: none; }
+    .subreply-item .comment-main { padding: 4px 0 6px; }
+    .subreply-item .comment-main img { width: 24px; height: 24px; }
+
+    /* Reply @mention highlight */
+    .reply-mention { color: #93b3e6; font-weight: 600; }
 
     /* Mobile chapters section (below video) */
     .mobile-chapters-section { display: none; margin-bottom: 1.5rem; }
@@ -479,15 +496,7 @@
                 const res = await fetch(`/api/video?id=${VIDEO_ID}&replies=${c.id}`);
                 const data = await res.json();
                 if (data.replies?.length) {
-                  data.replies.forEach(r => {
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'reply-wrapper';
-                    const el = document.createElement('div');
-                    el.className = 'comment-main';
-                    el.innerHTML = `<img src="${r.avatar}" alt="" /><div class="comment-body"><div class="author">${escHtml(r.author)}</div><div class="text">${r.text}</div><div class="meta"><span>${r.likes ? '👍 ' + r.likes : ''}</span><span>${timeAgo(r.date)}</span></div></div>`;
-                    wrapper.appendChild(el);
-                    repliesContainer.appendChild(wrapper);
-                  });
+                  buildReplyTree(data.replies, c.author, repliesContainer);
                 }
               } catch (err) { console.error('Failed to load replies:', err); }
               toggleBtn.disabled = false;
@@ -498,6 +507,76 @@
           toggleBtn.addEventListener('click', toggleReplies);
           threadLine.addEventListener('click', toggleReplies);
         }
+      });
+    }
+
+    // Build a threaded reply tree: direct replies get L-connectors,
+    // replies-to-replies get nested under the reply they mention with Show/Hide toggle
+    function buildReplyTree(replies, parentAuthor, container) {
+      const parsed = replies.map(r => {
+        const mentionMatch = r.text.match(/^(?:<a[^>]*>)?@([\w\s._-]+?)(?:<\/a>)?\s/);
+        const mentionedName = mentionMatch ? mentionMatch[1].trim() : null;
+        return { ...r, mentionedName };
+      });
+
+      const directReplies = [];
+      const subRepliesByAuthor = {};
+
+      parsed.forEach(r => {
+        if (!r.mentionedName || r.mentionedName === parentAuthor) {
+          directReplies.push(r);
+        } else {
+          const target = directReplies.find(dr => dr.author === r.mentionedName);
+          if (target) {
+            if (!subRepliesByAuthor[target.author]) subRepliesByAuthor[target.author] = [];
+            subRepliesByAuthor[target.author].push(r);
+          } else {
+            directReplies.push(r);
+          }
+        }
+      });
+
+      directReplies.forEach(r => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'reply-wrapper';
+        const subs = subRepliesByAuthor[r.author] || [];
+
+        const el = document.createElement('div');
+        el.className = 'comment-main';
+        el.innerHTML = `<img src="${r.avatar}" alt="" /><div class="comment-body"><div class="author">${escHtml(r.author)}</div><div class="text">${r.text}</div><div class="meta"><span>${r.likes ? '👍 ' + r.likes : ''}</span><span>${timeAgo(r.date)}</span></div></div>`;
+        wrapper.appendChild(el);
+
+        if (subs.length > 0) {
+          const subToggle = document.createElement('button');
+          subToggle.className = 'subreply-toggle';
+          subToggle.textContent = subs.length === 1 ? 'Show Reply' : `Show ${subs.length} Replies`;
+
+          const subContainer = document.createElement('div');
+          subContainer.className = 'subreplies-container';
+
+          subs.forEach(sr => {
+            const subItem = document.createElement('div');
+            subItem.className = 'subreply-item';
+            const subEl = document.createElement('div');
+            subEl.className = 'comment-main';
+            subEl.innerHTML = `<img src="${sr.avatar}" alt="" /><div class="comment-body"><div class="author">${escHtml(sr.author)}</div><div class="text">${sr.text}</div><div class="meta"><span>${sr.likes ? '👍 ' + sr.likes : ''}</span><span>${timeAgo(sr.date)}</span></div></div>`;
+            subItem.appendChild(subEl);
+            subContainer.appendChild(subItem);
+          });
+
+          subToggle.addEventListener('click', () => {
+            const isOpen = subContainer.classList.contains('show');
+            subContainer.classList.toggle('show');
+            subToggle.textContent = isOpen
+              ? (subs.length === 1 ? 'Show Reply' : `Show ${subs.length} Replies`)
+              : (subs.length === 1 ? 'Hide Reply' : 'Hide Replies');
+          });
+
+          wrapper.appendChild(subToggle);
+          wrapper.appendChild(subContainer);
+        }
+
+        container.appendChild(wrapper);
       });
     }
 
@@ -546,15 +625,7 @@
                 const res = await fetch(`/api/video?id=${VIDEO_ID}&replies=${c.id}`);
                 const data = await res.json();
                 if (data.replies?.length) {
-                  data.replies.forEach(r => {
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'reply-wrapper';
-                    const el = document.createElement('div');
-                    el.className = 'comment-main';
-                    el.innerHTML = `<img src="${r.avatar}" alt="" style="width:24px;height:24px;" /><div class="comment-body"><div class="author" style="font-size:0.75rem;">${escHtml(r.author)}</div><div class="text" style="font-size:0.75rem;">${r.text}</div><div class="meta"><span>${r.likes ? '👍 ' + r.likes : ''}</span><span>${timeAgo(r.date)}</span></div></div>`;
-                    wrapper.appendChild(el);
-                    repliesContainer.appendChild(wrapper);
-                  });
+                  buildReplyTree(data.replies, c.author, repliesContainer);
                 }
               } catch (err) { console.error(err); }
               toggleBtn.disabled = false;
