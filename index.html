@@ -13,72 +13,169 @@
   <link rel="preconnect" href="https://i.ytimg.com" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0f0f0f; color: #fff; font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; }
 
-    body {
-      background: #0f0f0f;
-      color: #fff;
-      font-family: system-ui, -apple-system, sans-serif;
-      min-height: 100vh;
+    /* ── Theatre layout: player + optional chapters panel ── */
+    .theatre-row {
+      display: flex;
+      width: 100%;
+      background: #000;
+      max-height: 80vh;
+      transition: max-height 0.3s ease;
     }
 
-    /* ── Theatre mode: full-width player ── */
-    .theatre-bar {
-      width: 100%;
+    .player-col {
+      flex: 1;
+      min-width: 0;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       background: #000;
     }
 
     media-player {
       width: 100%;
-      aspect-ratio: 16/9;
+      height: 100%;
       max-height: 80vh;
-      margin: 0 auto;
       display: block;
     }
 
-    /* ── Below-player content ── */
-    .below-player {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 1.5rem 2rem 3rem;
+    /* Make sure the video itself doesn't crop */
+    media-player video,
+    media-player iframe {
+      object-fit: contain !important;
     }
 
-    /* ── Fullscreen wrapper ── */
-    .fullscreen-wrapper {
-      position: relative;
-      background: #000;
+    /* ── Chapters side panel (YouTube-style) ── */
+    .chapters-panel {
+      width: 0;
+      overflow: hidden;
+      background: #1a1a1a;
+      border-left: 1px solid #2a2a2a;
+      transition: width 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      max-height: 80vh;
     }
 
-    .fullscreen-wrapper:fullscreen {
+    .chapters-panel.open {
+      width: 360px;
+    }
+
+    .chapters-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid #2a2a2a;
+      flex-shrink: 0;
+    }
+
+    .chapters-panel-header h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .chapters-panel-close {
+      appearance: none;
+      border: none;
+      background: none;
+      color: #aaa;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .chapters-panel-close:hover {
+      background: #333;
+      color: #fff;
+    }
+
+    .chapters-panel-close svg { width: 20px; height: 20px; }
+
+    .chapters-list {
+      flex: 1;
       overflow-y: auto;
-      background: #0f0f0f;
+      padding: 8px 0;
     }
 
-    .fullscreen-wrapper:fullscreen media-player {
-      width: 100%;
-      height: 100vh;
-      max-height: 100vh;
-      position: sticky;
-      top: 0;
-      z-index: 10;
+    .chapters-list::-webkit-scrollbar { width: 6px; }
+    .chapters-list::-webkit-scrollbar-track { background: transparent; }
+    .chapters-list::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+    .chapter-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background 0.15s;
+      border-left: 3px solid transparent;
     }
 
-    .fs-content {
-      display: none;
-      padding: 1.5rem 2rem 3rem;
-      max-width: 800px;
-      margin: 0 auto;
+    .chapter-item:hover { background: #252525; }
+    .chapter-item.active { background: #252525; border-left-color: #3b82f6; }
+
+    .chapter-thumb {
+      width: 100px;
+      height: 56px;
+      border-radius: 6px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: #333;
     }
 
+    .chapter-info { flex: 1; min-width: 0; }
+    .chapter-info .chapter-label { font-size: 0.85rem; font-weight: 500; color: #eee; line-height: 1.3; margin-bottom: 2px; }
+    .chapter-info .chapter-time { font-size: 0.78rem; color: #888; font-variant-numeric: tabular-nums; }
+
+    /* ── Chapters toggle button (in player controls area) ── */
+    .chapters-toggle-btn {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      line-height: 1;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      display: none; /* shown via JS when chapters exist */
+      transition: opacity 0.2s, transform 0.15s;
+    }
+
+    .chapters-toggle-btn:hover { opacity: 0.9; transform: scale(1.05); }
+    .chapters-toggle-btn:active { transform: scale(0.96); }
+
+    /* ── Below-player content ── */
+    .below-player { max-width: 960px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+
+    /* ── Fullscreen ── */
+    .fullscreen-wrapper { position: relative; background: #000; }
+    .fullscreen-wrapper:fullscreen { overflow-y: auto; background: #0f0f0f; }
+    .fullscreen-wrapper:fullscreen .theatre-row { max-height: 100vh; }
+    .fullscreen-wrapper:fullscreen media-player { max-height: 100vh; }
+    .fullscreen-wrapper:fullscreen .chapters-panel { max-height: 100vh; }
+
+    .fs-content { display: none; padding: 1.5rem 2rem 3rem; max-width: 800px; margin: 0 auto; }
     .fullscreen-wrapper:fullscreen .fs-content { display: block; }
 
-    /* ── Video info bar ── */
+    /* ── Video info ── */
     .video-info { margin-bottom: 1.5rem; }
     .video-info .video-title { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.75rem; line-height: 1.4; }
-
     .channel-row { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; }
     .channel-row img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
     .channel-row .channel-name { font-weight: 600; font-size: 0.95rem; }
-
     .description-box { background: #1a1a1a; border-radius: 10px; padding: 0.75rem 1rem; cursor: pointer; transition: background 0.15s; }
     .description-box:hover { background: #222; }
     .description-box .desc-preview { font-size: 0.85rem; color: #aaa; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -99,10 +196,10 @@
     .fullscreen-wrapper:fullscreen .scroll-hint { display: block; }
     @keyframes bounce { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-6px); } }
 
-    /* ── Disable Vidstack built-in gestures ── */
+    /* ── Disable Vidstack gestures ── */
     media-gesture { display: none !important; pointer-events: none !important; }
 
-    /* ── Hide Vidstack's default big play button ── */
+    /* ── Hide Vidstack default big play button ── */
     media-player [data-media-icon="play"],
     media-player .vds-play-button[class*="center"],
     [part~="center-play"] { display: none !important; }
@@ -129,7 +226,7 @@
     .btn-finish { background: rgba(22,163,74,0.45); color: #fff; }
     .btn-finish:hover { background: rgba(22,163,74,0.6); }
 
-    /* ── Animated flash overlay (desktop click / spacebar) ── */
+    /* ── Flash overlay ── */
     .play-pause-flash {
       position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%) scale(0.5);
@@ -140,65 +237,74 @@
     .play-pause-flash.fade-out { opacity: 0; transform: translate(-50%, -50%) scale(1.3); transition: opacity 0.5s ease, transform 0.5s ease; }
     .play-pause-flash svg { width: clamp(48px, 10vw, 72px); height: clamp(48px, 10vw, 72px); filter: drop-shadow(0 2px 12px rgba(0,0,0,0.5)); }
 
-    /* ── Mobile center play/pause circle button ── */
+    /* ── Mobile play/pause circle ── */
     .mobile-play-btn {
-      display: none; /* hidden by default, shown on mobile via JS */
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
+      display: none;
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
       z-index: 55; width: 56px; height: 56px;
       border-radius: 50%; border: none; cursor: pointer;
       background: rgba(0,0,0,0.55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       box-shadow: 0 2px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
       align-items: center; justify-content: center;
-      opacity: 0; transition: opacity 0.3s ease;
-      pointer-events: none;
+      opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
     }
     .mobile-play-btn svg { width: 28px; height: 28px; }
     .mobile-play-btn.show { opacity: 1; pointer-events: auto; display: flex; }
 
     /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .chapters-panel.open { width: 280px; }
+      .chapter-thumb { width: 80px; height: 45px; }
+    }
     @media (max-width: 600px) {
       .custom-actions { bottom: 70px; gap: 6px; }
       .custom-actions button { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+      /* On small mobile, chapters panel overlays the video */
+      .chapters-panel { position: absolute; right: 0; top: 0; z-index: 70; height: 100%; border-left: none; }
+      .chapters-panel.open { width: 85vw; }
     }
-
-    /* ── Chapters list ── */
-    .chapters-section { margin-top: 1.5rem; }
-    .chapters-section h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: #aaa; }
-    .chapter-item { display: flex; gap: 12px; align-items: center; padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: background 0.15s; }
-    .chapter-item:hover { background: #1a1a1a; }
-    .chapter-item .time { color: #3b82f6; font-size: 0.85rem; font-variant-numeric: tabular-nums; min-width: 50px; }
-    .chapter-item .label { font-size: 0.9rem; color: #ddd; }
 </style>
 </head>
 <body>
   <div class="fullscreen-wrapper" id="fullscreenWrapper">
-    <div class="theatre-bar">
-      <media-player
-        title="YouTube Video"
-        src="youtube/YFjfBk8HI5o"
-        poster="https://i.ytimg.com/vi/YFjfBk8HI5o/maxresdefault.jpg"
-        crossorigin
-        playsinline
-        load="visible"
-      >
-        <media-provider></media-provider>
-        <media-video-layout></media-video-layout>
+    <div class="theatre-row" id="theatreRow">
+      <div class="player-col">
+        <media-player
+          title="YouTube Video"
+          src="youtube/YFjfBk8HI5o"
+          poster="https://i.ytimg.com/vi/YFjfBk8HI5o/maxresdefault.jpg"
+          crossorigin
+          playsinline
+          load="visible"
+        >
+          <media-provider></media-provider>
+          <media-video-layout></media-video-layout>
 
-        <div class="custom-actions">
-          <button class="btn-save" id="saveBtn" type="button">Save Progress</button>
-          <button class="btn-finish" id="finishBtn" type="button">Finish</button>
+          <div class="custom-actions">
+            <button class="btn-save" id="saveBtn" type="button">Save Progress</button>
+            <button class="btn-finish" id="finishBtn" type="button">Finish</button>
+            <button class="chapters-toggle-btn" id="chaptersToggleBtn" type="button">Chapters</button>
+          </div>
+
+          <div class="play-pause-flash" id="playPauseFlash"></div>
+
+          <button class="mobile-play-btn" id="mobilePlayBtn" type="button" aria-label="Play/Pause">
+            <svg class="mobile-play-icon" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+            <svg class="mobile-pause-icon" viewBox="0 0 24 24" fill="white" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+        </media-player>
+      </div>
+
+      <!-- YouTube-style chapters side panel -->
+      <div class="chapters-panel" id="chaptersPanel">
+        <div class="chapters-panel-header">
+          <h3>In this video</h3>
+          <button class="chapters-panel-close" id="chaptersPanelClose" type="button" aria-label="Close chapters">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+          </button>
         </div>
-
-        <!-- Animated flash overlay (the one you like) -->
-        <div class="play-pause-flash" id="playPauseFlash"></div>
-
-        <!-- Mobile center play/pause circle button -->
-        <button class="mobile-play-btn" id="mobilePlayBtn" type="button" aria-label="Play/Pause">
-          <svg class="mobile-play-icon" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
-          <svg class="mobile-pause-icon" viewBox="0 0 24 24" fill="white" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-        </button>
-      </media-player>
+        <div class="chapters-list" id="chaptersList"></div>
+      </div>
     </div>
 
     <!-- Fullscreen scroll content -->
@@ -219,22 +325,34 @@
         <div id="commentsList"></div>
       </div>
     </div>
-
     <div class="scroll-hint" id="scrollHint">↓ Scroll for comments</div>
   </div>
 
-  <!-- Below player (normal, non-fullscreen view) -->
   <div class="below-player">
-    <div class="chapters-section" id="chaptersSection" style="display:none;">
-      <h2>Chapters</h2>
-      <div id="chaptersList"></div>
-    </div>
   </div>
 
   <script type="module" src="https://cdn.vidstack.io/player"></script>
   <script>
     const VIDEO_ID = 'YFjfBk8HI5o';
     const isMobile = () => window.matchMedia('(pointer: coarse)').matches;
+
+    // ── Chapters panel ──
+    const chaptersPanel = document.getElementById('chaptersPanel');
+    const chaptersToggleBtn = document.getElementById('chaptersToggleBtn');
+    const chaptersPanelClose = document.getElementById('chaptersPanelClose');
+
+    function toggleChaptersPanel() {
+      chaptersPanel.classList.toggle('open');
+    }
+
+    chaptersToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleChaptersPanel();
+    });
+
+    chaptersPanelClose.addEventListener('click', () => {
+      chaptersPanel.classList.remove('open');
+    });
 
     // ── Button handlers ──
     document.getElementById('saveBtn').addEventListener('click', (e) => {
@@ -271,7 +389,6 @@
         const playSVG = `<svg viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>`;
         const pauseSVG = `<svg viewBox="0 0 24 24" fill="white"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
 
-        // ── Flash overlay (the nice animated one) ──
         let flashTimer = null;
         function showFlash(isPlaying) {
           flash.innerHTML = isPlaying ? pauseSVG : playSVG;
@@ -285,14 +402,10 @@
         }
 
         function togglePlay() {
-          if (player.paused) {
-            player.play();
-          } else {
-            player.pause();
-          }
+          if (player.paused) player.play();
+          else player.pause();
         }
 
-        // Update mobile button icon when play state changes
         function updateMobileIcon() {
           if (player.paused) {
             mobilePlayIcon.style.display = '';
@@ -306,58 +419,59 @@
         player.addEventListener('play', updateMobileIcon);
         player.addEventListener('pause', updateMobileIcon);
 
-        // ── Mobile: tap shows controls + center play/pause button ──
-        let mobileControlsTimer = null;
+        // Track active chapter
+        player.addEventListener('timeupdate', () => {
+          const time = player.currentTime;
+          document.querySelectorAll('.chapter-item').forEach(item => {
+            const start = parseFloat(item.dataset.start);
+            const end = parseFloat(item.dataset.end);
+            if (time >= start && time < end) {
+              item.classList.add('active');
+              // Scroll into view if panel is open
+              if (chaptersPanel.classList.contains('open')) {
+                item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+              }
+            } else {
+              item.classList.remove('active');
+            }
+          });
+        });
 
+        let mobileControlsTimer = null;
         function showMobileControls() {
           mobileBtn.classList.add('show');
           updateMobileIcon();
           clearTimeout(mobileControlsTimer);
-          mobileControlsTimer = setTimeout(() => {
-            mobileBtn.classList.remove('show');
-          }, 3500);
+          mobileControlsTimer = setTimeout(() => { mobileBtn.classList.remove('show'); }, 3500);
         }
 
-        // Mobile play/pause button click
         mobileBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           togglePlay();
           showFlash(!player.paused);
-          // Keep controls visible a bit longer after pressing
           showMobileControls();
         });
 
-        // ── Click/tap on video area ──
         player.addEventListener('click', (e) => {
           const target = e.target;
-          // Ignore clicks on controls, buttons, sliders, menus, our custom stuff
-          if (target.closest('.custom-actions') ||
-              target.closest('media-controls') ||
-              target.closest('button') ||
-              target.closest('[role="slider"]') ||
-              target.closest('media-menu') ||
-              target.closest('.mobile-play-btn')) {
-            return;
-          }
+          if (target.closest('.custom-actions') || target.closest('media-controls') ||
+              target.closest('button') || target.closest('[role="slider"]') ||
+              target.closest('media-menu') || target.closest('.mobile-play-btn') ||
+              target.closest('.chapters-panel')) return;
 
           if (isMobile()) {
-            // Mobile: just show/hide controls, don't toggle playback
             if (mobileBtn.classList.contains('show')) {
-              // Already showing — hide them
               mobileBtn.classList.remove('show');
               clearTimeout(mobileControlsTimer);
             } else {
               showMobileControls();
             }
           } else {
-            // Desktop: toggle play/pause + flash
             togglePlay();
-            // Small delay to read the new state after toggle
             requestAnimationFrame(() => showFlash(!player.paused));
           }
         });
 
-        // ── Spacebar (desktop) ──
         document.addEventListener('keydown', (e) => {
           if (e.code === 'Space' && !e.target.matches('input, textarea, button, [contenteditable]')) {
             e.preventDefault();
@@ -366,15 +480,11 @@
           }
         });
 
-        // ── Fullscreen override ──
         player.addEventListener('media-fullscreen-request', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          if (!document.fullscreenElement) {
-            wrapper.requestFullscreen();
-          } else {
-            document.exitFullscreen();
-          }
+          if (!document.fullscreenElement) wrapper.requestFullscreen();
+          else document.exitFullscreen();
         });
       });
 
@@ -385,7 +495,7 @@
       });
     });
 
-    // ── Load video data from API ──
+    // ── Load video data ──
     async function loadVideoData() {
       try {
         const res = await fetch(`/api/video?id=${VIDEO_ID}`);
@@ -420,7 +530,11 @@
         }
 
         const chapters = parseChapters(data.description, parseDuration(data.duration));
-        if (chapters.length > 0) { injectChapterTrack(chapters); renderChapterList(chapters); }
+        if (chapters.length > 0) {
+          injectChapterTrack(chapters);
+          renderChaptersPanel(chapters);
+          chaptersToggleBtn.style.display = 'inline-block';
+        }
       } catch (err) { console.error('Failed to load video data:', err); }
     }
 
@@ -435,6 +549,30 @@
       return chapters;
     }
 
+    function renderChaptersPanel(chapters) {
+      const list = document.getElementById('chaptersList');
+      list.innerHTML = '';
+      const thumbBase = `https://i.ytimg.com/vi/${VIDEO_ID}/mqdefault.jpg`;
+
+      chapters.forEach(ch => {
+        const item = document.createElement('div');
+        item.className = 'chapter-item';
+        item.dataset.start = ch.seconds;
+        item.dataset.end = ch.end;
+        item.innerHTML = `
+          <img class="chapter-thumb" src="${thumbBase}" alt="" />
+          <div class="chapter-info">
+            <div class="chapter-label">${escHtml(ch.label)}</div>
+            <div class="chapter-time">${ch.time}</div>
+          </div>`;
+        item.addEventListener('click', () => {
+          const p = document.querySelector('media-player');
+          if (p) { p.currentTime = ch.seconds; p.play(); }
+        });
+        list.appendChild(item);
+      });
+    }
+
     function timeToSeconds(t) { const p = t.split(':').map(Number); return p.length === 3 ? p[0]*3600+p[1]*60+p[2] : p[0]*60+p[1]; }
     function parseDuration(iso) { const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/); return m ? (parseInt(m[1]||0)*3600)+(parseInt(m[2]||0)*60)+parseInt(m[3]||0) : 0; }
     function pad(n) { return String(n).padStart(2,'0'); }
@@ -447,18 +585,6 @@
       customElements.whenDefined('media-player').then(() => {
         const track = document.createElement('track'); track.kind = 'chapters'; track.src = url; track.default = true;
         document.querySelector('media-provider').appendChild(track);
-      });
-    }
-
-    function renderChapterList(chapters) {
-      const section = document.getElementById('chaptersSection');
-      const list = document.getElementById('chaptersList');
-      section.style.display = 'block';
-      chapters.forEach(ch => {
-        const item = document.createElement('div'); item.className = 'chapter-item';
-        item.innerHTML = `<span class="time">${ch.time}</span><span class="label">${escHtml(ch.label)}</span>`;
-        item.addEventListener('click', () => { const p = document.querySelector('media-player'); if (p) p.currentTime = ch.seconds; });
-        list.appendChild(item);
       });
     }
 
