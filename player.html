@@ -455,8 +455,16 @@
 
     // ── Player logic ──
     document.addEventListener('DOMContentLoaded', () => {
+      console.log('[autoplay] DOMContentLoaded');
       customElements.whenDefined('media-player').then(() => {
         const player = document.querySelector('media-player');
+        console.log('[autoplay] whenDefined resolved, src:', player.getAttribute('src'));
+        player.addEventListener('can-play', () => {
+          console.log('[autoplay] can-play fired, paused:', player.paused);
+          player.play()
+            .then(() => console.log('[autoplay] play() resolved'))
+            .catch(err => console.log('[autoplay] play() rejected:', err?.message));
+        }, { once: true });
         const wrapper = document.getElementById('fullscreenWrapper');
         const flash = document.getElementById('playPauseFlash');
         const mobileBtn = document.getElementById('mobilePlayBtn');
