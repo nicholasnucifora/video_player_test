@@ -354,6 +354,11 @@
   <script>
     const VIDEO_ID = new URLSearchParams(window.location.search).get('v') || '';
     if (!VIDEO_ID) { window.location.replace('/'); throw new Error('no id'); }
+    const _mp = document.querySelector('media-player');
+    if (_mp) {
+      _mp.setAttribute('src', 'youtube/' + VIDEO_ID);
+      _mp.setAttribute('poster', 'https://i.ytimg.com/vi/' + VIDEO_ID + '/maxresdefault.jpg');
+    }
     const isMobile = () => window.matchMedia('(pointer: coarse)').matches;
 
     // ── Side panel (shared chapters + comments) ──
@@ -452,8 +457,6 @@
     document.addEventListener('DOMContentLoaded', () => {
       customElements.whenDefined('media-player').then(() => {
         const player = document.querySelector('media-player');
-        player.setAttribute('src', 'youtube/' + VIDEO_ID);
-        player.setAttribute('poster', 'https://i.ytimg.com/vi/' + VIDEO_ID + '/maxresdefault.jpg');
         const wrapper = document.getElementById('fullscreenWrapper');
         const flash = document.getElementById('playPauseFlash');
         const mobileBtn = document.getElementById('mobilePlayBtn');
@@ -471,7 +474,7 @@
           flashTimer = setTimeout(() => { flash.classList.remove('visible'); flash.classList.add('fade-out'); }, 300);
         }
 
-        function togglePlay() { if (player.paused) player.play(); else player.pause(); }
+        function togglePlay() { if (player.paused) player.play().catch(() => {}); else player.pause(); }
 
         function updateMobileIcon() {
           mobilePlayIcon.style.display = player.paused ? '' : 'none';
@@ -566,7 +569,6 @@
           });
         }
 
-        player.play().catch(() => {});
       });
     });
 
