@@ -421,6 +421,7 @@
       // Desktop: use the flex side panel
       if (currentPanel === type) { closePanel(); return; }
       currentPanel = type;
+      const panelWasOpen = sidePanel.classList.contains('open');
       sidePanel.classList.add('open');
       if (type === 'chapters') {
         sidePanelTitle.textContent = 'In this video';
@@ -430,7 +431,14 @@
         sidePanelTitle.textContent = 'Comments';
         panelComments.classList.add('active');
         panelChapters.classList.remove('active');
-        if (!panelComments.hasChildNodes()) populatePanelComments();
+        if (!panelComments.hasChildNodes()) {
+          if (panelWasOpen) {
+            populatePanelComments();
+          } else {
+            // Panel is transitioning width 0→540px; wait until open before measuring stem heights
+            sidePanel.addEventListener('transitionend', () => populatePanelComments(), { once: true });
+          }
+        }
       }
     }
 
