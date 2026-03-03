@@ -283,7 +283,7 @@
   <div class="fullscreen-wrapper" id="fullscreenWrapper">
     <div class="theatre-row" id="theatreRow">
       <div class="player-col">
-        <media-player title="YouTube Video" src="" poster="" crossorigin playsinline load="eager">
+        <media-player title="YouTube Video" crossorigin playsinline load="eager">
           <media-provider></media-provider>
           <media-video-layout></media-video-layout>
 
@@ -359,7 +359,6 @@
     if (_mp) {
       _mp.setAttribute('src', 'youtube/' + VIDEO_ID);
       _mp.setAttribute('poster', 'https://i.ytimg.com/vi/' + VIDEO_ID + '/maxresdefault.jpg');
-      _mp.setAttribute('autoplay', '');
     }
     const isMobile = () => window.matchMedia('(pointer: coarse)').matches;
 
@@ -571,7 +570,7 @@
           });
         }
 
-        player.addEventListener('can-play', () => player.play().catch(() => {}), { once: true });
+        player.play().catch(() => {});
       });
     });
 
