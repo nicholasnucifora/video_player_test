@@ -571,7 +571,7 @@
           });
         }
 
-        player.play().catch(() => {});
+        player.addEventListener('can-play', () => player.play().catch(() => {}), { once: true });
       });
     });
 
