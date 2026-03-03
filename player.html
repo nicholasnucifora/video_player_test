@@ -234,9 +234,6 @@
     .btn-save:hover { background: rgba(255,255,255,0.14); color: #fff; }
     .btn-finish { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
     .btn-finish:hover { background: rgba(255,255,255,0.14); color: #fff; }
-    .btn-unmute { background: rgba(255,255,255,0.18); color: #fff; border-color: rgba(255,255,255,0.2) !important; }
-    .btn-unmute:hover { background: rgba(255,255,255,0.28); }
-
     /* ── Flash overlay ── */
     .play-pause-flash { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.5); z-index: 60; pointer-events: none; opacity: 0; transition: opacity 0.15s ease, transform 0.15s ease; }
     .play-pause-flash.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
@@ -285,12 +282,11 @@
   <div class="fullscreen-wrapper" id="fullscreenWrapper">
     <div class="theatre-row" id="theatreRow">
       <div class="player-col">
-        <media-player title="YouTube Video" autoplay muted crossorigin playsinline load="eager">
+        <media-player title="YouTube Video" crossorigin playsinline load="eager">
           <media-provider></media-provider>
           <media-video-layout></media-video-layout>
 
           <div class="custom-actions">
-            <button class="btn-unmute" id="unmuteBtn" type="button" style="display:none">Tap to unmute</button>
             <button class="btn-save" id="saveBtn" type="button">Save Progress</button>
             <button class="btn-finish" id="finishBtn" type="button">Finish</button>
           </div>
@@ -358,11 +354,6 @@
   <script>
     const VIDEO_ID = new URLSearchParams(window.location.search).get('v') || '';
     if (!VIDEO_ID) { window.location.replace('/'); throw new Error('no id'); }
-    const _mp = document.querySelector('media-player');
-    if (_mp) {
-      _mp.setAttribute('src', 'youtube/' + VIDEO_ID);
-      _mp.setAttribute('poster', 'https://i.ytimg.com/vi/' + VIDEO_ID + '/maxresdefault.jpg');
-    }
     const isMobile = () => window.matchMedia('(pointer: coarse)').matches;
 
     // ── Side panel (shared chapters + comments) ──
@@ -437,14 +428,6 @@
     document.getElementById('sidePanelClose').addEventListener('click', closePanel);
     document.getElementById('fsOverlayClose').addEventListener('click', closePanel);
 
-    // ── Unmute button ──
-    document.getElementById('unmuteBtn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      const player = document.querySelector('media-player');
-      if (player) player.muted = false;
-      document.getElementById('unmuteBtn').style.display = 'none';
-    });
-
     // ── Button handlers ──
     document.getElementById('saveBtn').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -469,6 +452,8 @@
     document.addEventListener('DOMContentLoaded', () => {
       customElements.whenDefined('media-player').then(() => {
         const player = document.querySelector('media-player');
+        player.setAttribute('src', 'youtube/' + VIDEO_ID);
+        player.setAttribute('poster', 'https://i.ytimg.com/vi/' + VIDEO_ID + '/maxresdefault.jpg');
         const wrapper = document.getElementById('fullscreenWrapper');
         const flash = document.getElementById('playPauseFlash');
         const mobileBtn = document.getElementById('mobilePlayBtn');
@@ -494,11 +479,6 @@
         }
         player.addEventListener('play', updateMobileIcon);
         player.addEventListener('pause', updateMobileIcon);
-
-        // Show unmute button when muted autoplay starts
-        player.addEventListener('play', () => {
-          if (player.muted) document.getElementById('unmuteBtn').style.display = '';
-        }, { once: true });
 
         // Track active chapter
         player.addEventListener('timeupdate', () => {
