@@ -608,9 +608,10 @@
           const topToggle = thread.querySelector(':scope > .replies-toggle-top');
           const target = (repliesContainer && repliesContainer.classList.contains('show')) ? repliesContainer : topToggle;
           if (target) {
+            const threadRect = thread.getBoundingClientRect();
             const targetRect = target.getBoundingClientRect();
-            const stemTop = threadStem.getBoundingClientRect().top;
-            threadStem.style.height = Math.max(0, targetRect.top - stemTop + 2) + 'px';
+            const stemCSSTop = parseFloat(getComputedStyle(threadStem).top);
+            threadStem.style.height = Math.max(0, targetRect.top - threadRect.top - stemCSSTop + 2) + 'px';
           }
         }
         // Sub-reply stems inside this thread
@@ -621,9 +622,10 @@
           const subToggleTop = wrapper.querySelector(':scope > .subreply-toggle');
           const target = (subContainer && subContainer.classList.contains('show')) ? subContainer : subToggleTop;
           if (target) {
+            const wrapperRect = wrapper.getBoundingClientRect();
             const targetRect = target.getBoundingClientRect();
-            const stemTop = subStem.getBoundingClientRect().top;
-            subStem.style.height = Math.max(0, targetRect.top - stemTop + 2) + 'px';
+            const stemCSSTop = parseFloat(getComputedStyle(subStem).top);
+            subStem.style.height = Math.max(0, targetRect.top - wrapperRect.top - stemCSSTop + 2) + 'px';
           }
         });
       });
@@ -741,9 +743,10 @@
             requestAnimationFrame(() => {
               // When expanded, stem reaches to the replies container; when collapsed, to the top toggle
               const target = repliesContainer.classList.contains('show') ? repliesContainer : topToggle;
+              const threadRect = thread.getBoundingClientRect();
               const targetRect = target.getBoundingClientRect();
-              const stemTop = threadStem.getBoundingClientRect().top;
-              const stemHeight = targetRect.top - stemTop + 2;
+              const stemCSSTop = parseFloat(getComputedStyle(threadStem).top);
+              const stemHeight = targetRect.top - threadRect.top - stemCSSTop + 2;
               threadStem.style.height = Math.max(0, stemHeight) + 'px';
             });
           };
@@ -916,9 +919,10 @@
             requestAnimationFrame(() => {
               // When expanded, stem reaches to sub-container; when collapsed, to the top toggle
               const target = subContainer.classList.contains('show') ? subContainer : subToggleTop;
+              const wrapperRect = wrapper.getBoundingClientRect();
               const targetRect = target.getBoundingClientRect();
-              const stemTop = subStem.getBoundingClientRect().top;
-              const stemHeight = targetRect.top - stemTop + 2;
+              const stemCSSTop = parseFloat(getComputedStyle(subStem).top);
+              const stemHeight = targetRect.top - wrapperRect.top - stemCSSTop + 2;
               subStem.style.height = Math.max(0, stemHeight) + 'px';
             });
           };
@@ -1060,9 +1064,10 @@
             if (!threadStem) return;
             requestAnimationFrame(() => {
               const target = repliesContainer.classList.contains('show') ? repliesContainer : topToggle;
+              const threadRect = thread.getBoundingClientRect();
               const targetRect = target.getBoundingClientRect();
-              const stemTop = threadStem.getBoundingClientRect().top;
-              const stemHeight = targetRect.top - stemTop + 2;
+              const stemCSSTop = parseFloat(getComputedStyle(threadStem).top);
+              const stemHeight = targetRect.top - threadRect.top - stemCSSTop + 2;
               threadStem.style.height = Math.max(0, stemHeight) + 'px';
             });
           };
