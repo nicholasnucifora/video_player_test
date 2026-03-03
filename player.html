@@ -264,6 +264,12 @@
     .panel-thread .subreply-toggle,
     .panel-thread .subreply-toggle-bottom { font-size: 0.95rem; }
     .panel-thread .read-more-btn { font-size: 0.9rem; }
+    /* Panel thread-line alignment: panel-thread has 16px left padding, avatar is 36px.
+       Avatar center = 16px padding + 18px half-avatar = 34px from outer thread edge.
+       top: 46px matches "last 4px of 36px avatar" (14px top-padding + 36px - 4px = 46px). */
+    .panel-thread.comment-thread > .thread-stem { left: 34px; top: 46px; }
+    .panel-thread > .replies-toggle-top { margin-left: 18px; }
+    .panel-thread > .replies-container { margin-left: 18px; }
 
     /* ── Responsive ── */
     @media (max-width: 768px) {
@@ -602,9 +608,9 @@
           const topToggle = thread.querySelector(':scope > .replies-toggle-top');
           const target = (repliesContainer && repliesContainer.classList.contains('show')) ? repliesContainer : topToggle;
           if (target) {
-            const threadRect = thread.getBoundingClientRect();
             const targetRect = target.getBoundingClientRect();
-            threadStem.style.height = Math.max(0, targetRect.top - threadRect.top - 58 + 4) + 'px';
+            const stemTop = threadStem.getBoundingClientRect().top;
+            threadStem.style.height = Math.max(0, targetRect.top - stemTop + 2) + 'px';
           }
         }
         // Sub-reply stems inside this thread
@@ -615,9 +621,9 @@
           const subToggleTop = wrapper.querySelector(':scope > .subreply-toggle');
           const target = (subContainer && subContainer.classList.contains('show')) ? subContainer : subToggleTop;
           if (target) {
-            const wrapperRect = wrapper.getBoundingClientRect();
             const targetRect = target.getBoundingClientRect();
-            subStem.style.height = Math.max(0, targetRect.top - wrapperRect.top - 38 + 4) + 'px';
+            const stemTop = subStem.getBoundingClientRect().top;
+            subStem.style.height = Math.max(0, targetRect.top - stemTop + 2) + 'px';
           }
         });
       });
@@ -733,11 +739,11 @@
 
           const updateStemHeight = () => {
             requestAnimationFrame(() => {
-              const threadRect = thread.getBoundingClientRect();
               // When expanded, stem reaches to the replies container; when collapsed, to the top toggle
               const target = repliesContainer.classList.contains('show') ? repliesContainer : topToggle;
               const targetRect = target.getBoundingClientRect();
-              const stemHeight = targetRect.top - threadRect.top - 58 + 4;
+              const stemTop = threadStem.getBoundingClientRect().top;
+              const stemHeight = targetRect.top - stemTop + 2;
               threadStem.style.height = Math.max(0, stemHeight) + 'px';
             });
           };
@@ -908,11 +914,11 @@
 
           const updateSubStemHeight = () => {
             requestAnimationFrame(() => {
-              const wrapperRect = wrapper.getBoundingClientRect();
               // When expanded, stem reaches to sub-container; when collapsed, to the top toggle
               const target = subContainer.classList.contains('show') ? subContainer : subToggleTop;
               const targetRect = target.getBoundingClientRect();
-              const stemHeight = targetRect.top - wrapperRect.top - 38 + 4;
+              const stemTop = subStem.getBoundingClientRect().top;
+              const stemHeight = targetRect.top - stemTop + 2;
               subStem.style.height = Math.max(0, stemHeight) + 'px';
             });
           };
@@ -1053,10 +1059,10 @@
           const updatePanelStemHeight = () => {
             if (!threadStem) return;
             requestAnimationFrame(() => {
-              const threadRect = thread.getBoundingClientRect();
               const target = repliesContainer.classList.contains('show') ? repliesContainer : topToggle;
               const targetRect = target.getBoundingClientRect();
-              const stemHeight = targetRect.top - threadRect.top - 58 + 4;
+              const stemTop = threadStem.getBoundingClientRect().top;
+              const stemHeight = targetRect.top - stemTop + 2;
               threadStem.style.height = Math.max(0, stemHeight) + 'px';
             });
           };
