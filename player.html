@@ -106,8 +106,8 @@
 
     /* Stem line from parent avatar down to replies — real DOM element for hover interaction */
     /* Height is set dynamically via JS to reach exactly to the replies container top */
-    .thread-stem { display: none; position: absolute; left: 24px; top: 58px; width: 20px; cursor: pointer; z-index: 1; }
-    .thread-stem::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; transition: background 0.15s; }
+    .thread-stem { display: none; position: absolute; left: 6px; top: 58px; width: 38px; cursor: pointer; z-index: 1; }
+    .thread-stem::after { content: ''; position: absolute; left: 18px; top: 0; bottom: 0; width: 2px; background: #333; transition: background 0.15s; }
     .comment-thread.has-replies-open .thread-stem { display: block; }
     /* Also show stem when collapsed (to connect "Show X replies" to avatar) */
     .comment-thread.has-replies .thread-stem { display: block; }
@@ -128,8 +128,8 @@
     .replies-container.show { display: block; }
 
     /* Clickable collapse line inside the replies container — stops before bottom toggle via bottom offset */
-    .replies-collapse-line { position: absolute; left: 0; top: 0; bottom: 22px; width: 20px; cursor: pointer; z-index: 2; }
-    .replies-collapse-line::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: #333; border-radius: 1px; transition: background 0.15s; }
+    .replies-collapse-line { position: absolute; left: -18px; top: 0; bottom: 22px; width: 38px; cursor: pointer; z-index: 2; }
+    .replies-collapse-line::after { content: ''; position: absolute; left: 18px; top: 0; bottom: 0; width: 2px; background: #333; border-radius: 1px; transition: background 0.15s; }
 
     /* Individual reply — L-curve connects collapse line to reply avatar */
     .reply-wrapper { position: relative; padding-left: 22px; min-height: 32px; }
@@ -267,7 +267,7 @@
     /* Panel thread-line alignment: panel-thread has 16px left padding, avatar is 36px.
        Avatar center = 16px padding + 18px half-avatar = 34px from outer thread edge.
        top: 46px matches "last 4px of 36px avatar" (14px top-padding + 36px - 4px = 46px). */
-    .panel-thread.comment-thread > .thread-stem { left: 34px; top: 46px; }
+    .panel-thread.comment-thread > .thread-stem { left: 16px; top: 50px; }
     .panel-thread > .replies-toggle-top { margin-left: 18px; }
     .panel-thread > .replies-container { margin-left: 18px; }
 
