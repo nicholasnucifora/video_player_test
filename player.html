@@ -234,6 +234,10 @@
     .btn-save:hover { background: rgba(255,255,255,0.14); color: #fff; }
     .btn-finish { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
     .btn-finish:hover { background: rgba(255,255,255,0.14); color: #fff; }
+    /* ── Loading cover (hides thumbnail + YouTube logo flash before play) ── */
+    .player-cover { position: absolute; inset: 0; background: #000; z-index: 5; pointer-events: none; transition: opacity 0.35s ease; }
+    .player-cover.hidden { opacity: 0; }
+
     /* ── Flash overlay ── */
     .play-pause-flash { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.5); z-index: 60; pointer-events: none; opacity: 0; transition: opacity 0.15s ease, transform 0.15s ease; }
     .play-pause-flash.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
@@ -286,6 +290,7 @@
           <media-provider></media-provider>
           <media-video-layout></media-video-layout>
 
+          <div class="player-cover" id="playerCover"></div>
           <div class="custom-actions">
             <button class="btn-save" id="saveBtn" type="button">Save Progress</button>
             <button class="btn-finish" id="finishBtn" type="button">Finish</button>
@@ -355,10 +360,7 @@
     const VIDEO_ID = new URLSearchParams(window.location.search).get('v') || '';
     if (!VIDEO_ID) { window.location.replace('/'); throw new Error('no id'); }
     const _mp = document.querySelector('media-player');
-    if (_mp) {
-      _mp.setAttribute('src', 'youtube/' + VIDEO_ID);
-      _mp.setAttribute('poster', 'https://i.ytimg.com/vi/' + VIDEO_ID + '/maxresdefault.jpg');
-    }
+    if (_mp) _mp.setAttribute('src', 'youtube/' + VIDEO_ID);
     const isMobile = () => window.matchMedia('(pointer: coarse)').matches;
 
     // ── Side panel (shared chapters + comments) ──
@@ -455,15 +457,16 @@
 
     // ── Player logic ──
     document.addEventListener('DOMContentLoaded', () => {
-      console.log('[autoplay] DOMContentLoaded');
       customElements.whenDefined('media-player').then(() => {
         const player = document.querySelector('media-player');
-        console.log('[autoplay] whenDefined resolved, src:', player.getAttribute('src'));
+        const cover = document.getElementById('playerCover');
+
         player.addEventListener('can-play', () => {
-          console.log('[autoplay] can-play fired, paused:', player.paused);
-          player.play()
-            .then(() => console.log('[autoplay] play() resolved'))
-            .catch(err => console.log('[autoplay] play() rejected:', err?.message));
+          player.play().catch(() => {});
+        }, { once: true });
+
+        player.addEventListener('playing', () => {
+          cover.classList.add('hidden');
         }, { once: true });
         const wrapper = document.getElementById('fullscreenWrapper');
         const flash = document.getElementById('playPauseFlash');
