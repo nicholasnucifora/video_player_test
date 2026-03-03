@@ -235,8 +235,10 @@
     .btn-finish { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
     .btn-finish:hover { background: rgba(255,255,255,0.14); color: #fff; }
     /* ── Loading cover (hides thumbnail + YouTube logo flash before play) ── */
-    .player-cover { position: absolute; inset: 0; background: #000; z-index: 5; pointer-events: none; transition: opacity 0.35s ease; }
+    .player-cover { position: absolute; inset: 0; background: #000; z-index: 5; pointer-events: none; transition: opacity 0.35s ease; display: flex; align-items: center; justify-content: center; }
     .player-cover.hidden { opacity: 0; }
+    .player-cover-spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.15); border-top-color: rgba(255,255,255,0.7); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── Flash overlay ── */
     .play-pause-flash { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.5); z-index: 60; pointer-events: none; opacity: 0; transition: opacity 0.15s ease, transform 0.15s ease; }
@@ -290,7 +292,7 @@
           <media-provider></media-provider>
           <media-video-layout></media-video-layout>
 
-          <div class="player-cover" id="playerCover"></div>
+          <div class="player-cover" id="playerCover"><div class="player-cover-spinner"></div></div>
           <div class="custom-actions">
             <button class="btn-save" id="saveBtn" type="button">Save Progress</button>
             <button class="btn-finish" id="finishBtn" type="button">Finish</button>
