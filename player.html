@@ -359,6 +359,7 @@
     if (_mp) {
       _mp.setAttribute('src', 'youtube/' + VIDEO_ID);
       _mp.setAttribute('poster', 'https://i.ytimg.com/vi/' + VIDEO_ID + '/maxresdefault.jpg');
+      _mp.setAttribute('autoplay', '');
     }
     const isMobile = () => window.matchMedia('(pointer: coarse)').matches;
 
@@ -570,13 +571,7 @@
           });
         }
 
-        // Autoplay only on desktop — mobile browsers block it and it causes infinite loading
-        if (!isMobile()) {
-          player.play().catch(() => {});
-        } else {
-          // On mobile, switch to lighter loading strategy
-          player.setAttribute('load', 'visible');
-        }
+        player.play().catch(() => {});
       });
     });
 
