@@ -275,7 +275,7 @@
     @media (max-width: 768px) {
       .side-panel { display: none !important; }
       /* Explicit height so CSS can transition smoothly into cinema mode */
-      .theatre-row { height: 56.25vw; max-height: none; flex-direction: column; transition: height 0.38s cubic-bezier(0.4, 0, 0.2, 1); }
+      .theatre-row { height: 56.25vw; max-height: none; flex-direction: column; transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
       .player-col { height: 100%; display: flex; align-items: center; }
       media-player { aspect-ratio: 16/9; height: auto; flex: none; width: 100%; }
       .mobile-chapters-section { display: none !important; }
@@ -1444,7 +1444,7 @@
       let cinemaMode = false;
       let touchStartY = 0;
       let activeDrag = null; // 'enter' | 'exit' | null
-      const THRESHOLD = 140;
+      const THRESHOLD = 240;
 
       function getVideoH() { return window.innerWidth * 0.5625; }
       function getViewH() { return window.innerHeight; }
@@ -1461,23 +1461,26 @@
 
       function enterCinema() {
         cinemaMode = true;
-        theatreRow.style.height = ''; // hand off to CSS transition → 100vh
+        theatreRow.style.height = ''; // CSS transition → 100vh
         document.body.classList.add('cinema-mode');
-        if (belowPlayer) { belowPlayer.style.transition = 'opacity 0.35s ease'; belowPlayer.style.opacity = '0'; belowPlayer.style.pointerEvents = 'none'; }
+        if (belowPlayer) { belowPlayer.style.transition = 'opacity 0.5s ease'; belowPlayer.style.opacity = '0'; belowPlayer.style.pointerEvents = 'none'; }
       }
       function exitCinema() {
         cinemaMode = false;
-        theatreRow.style.height = ''; // hand off to CSS transition → 56.25vw
+        theatreRow.style.height = ''; // CSS transition → 56.25vw
         document.body.classList.remove('cinema-mode');
-        if (belowPlayer) { belowPlayer.style.transition = 'opacity 0.35s ease'; belowPlayer.style.opacity = '1'; belowPlayer.style.pointerEvents = ''; }
+        // Keep scroll locked during the transition so swipe momentum doesn't fling the page
+        document.body.style.overflowY = 'hidden';
+        setTimeout(() => { document.body.style.overflowY = ''; }, 520);
+        if (belowPlayer) { belowPlayer.style.transition = 'opacity 0.5s ease'; belowPlayer.style.opacity = '1'; belowPlayer.style.pointerEvents = ''; }
       }
       function snapNormal() {
         theatreRow.style.height = '';
-        if (belowPlayer) { belowPlayer.style.transition = 'opacity 0.22s ease'; belowPlayer.style.opacity = '1'; belowPlayer.style.pointerEvents = ''; }
+        if (belowPlayer) { belowPlayer.style.transition = 'opacity 0.3s ease'; belowPlayer.style.opacity = '1'; belowPlayer.style.pointerEvents = ''; }
       }
       function snapCinema() {
         theatreRow.style.height = '';
-        if (belowPlayer) { belowPlayer.style.transition = 'opacity 0.22s ease'; belowPlayer.style.opacity = '0'; }
+        if (belowPlayer) { belowPlayer.style.transition = 'opacity 0.3s ease'; belowPlayer.style.opacity = '0'; }
       }
 
       // ── ENTER: drag the title area downward ──
@@ -1507,7 +1510,7 @@
         activeDrag = null;
         theatreRow.style.transition = '';
         const dy = (e.changedTouches?.[0]?.clientY ?? touchStartY) - touchStartY;
-        if (dy > THRESHOLD * 0.38) enterCinema();
+        if (dy > THRESHOLD * 0.45) enterCinema();
         else snapNormal();
       }
       belowPlayer.addEventListener('touchend', onBelowEnd, { passive: true });
@@ -1537,7 +1540,7 @@
         activeDrag = null;
         theatreRow.style.transition = '';
         const dy = (e.changedTouches?.[0]?.clientY ?? touchStartY) - touchStartY;
-        if (dy < -(THRESHOLD * 0.38)) exitCinema();
+        if (dy < -(THRESHOLD * 0.45)) exitCinema();
         else snapCinema();
       }
       theatreRow.addEventListener('touchend', onTheatreEnd, { passive: true });
@@ -1602,8 +1605,9 @@
       sheetClose.addEventListener('click', closeSheet);
       backdrop.addEventListener('click', closeSheet);
 
-      // Drag-to-dismiss: drag the sheet down to close it
+      // Drag-to-dismiss: attach directly on handle + header (no bubbling through scrollable body)
       const dragHandle = document.getElementById('mobileSheetDragHandle');
+      const sheetHeader = sheet.querySelector('.mobile-sheet-header');
       let sheetDragStartY = 0;
       let sheetDragging = false;
 
@@ -1611,41 +1615,40 @@
         if (!sheet.classList.contains('open')) return;
         sheetDragStartY = e.touches[0].clientY;
         sheetDragging = true;
-        sheet.classList.add('dragging');
+        sheet.style.transition = 'none'; // disable CSS transition during drag
       }
       function onSheetTouchMove(e) {
         if (!sheetDragging) return;
+        e.preventDefault(); // prevent page scroll while dragging sheet
         const dy = e.touches[0].clientY - sheetDragStartY;
         if (dy > 0) sheet.style.transform = `translateY(${dy}px)`;
       }
       function onSheetTouchEnd(e) {
         if (!sheetDragging) return;
         sheetDragging = false;
-        sheet.classList.remove('dragging');
         const dy = (e.changedTouches[0]?.clientY ?? sheetDragStartY) - sheetDragStartY;
         if (dy > 80) {
-          // Animate the rest of the way down, then close
-          sheet.style.transition = 'transform 0.22s ease';
+          // Animate fully down then close
+          sheet.style.transition = 'transform 0.25s ease';
           sheet.style.transform = 'translateY(100%)';
           setTimeout(() => {
             sheet.style.transition = '';
             sheet.style.transform = '';
             closeSheet();
-          }, 230);
+          }, 260);
         } else {
-          // Snap back open
+          // Snap back: re-enable transition, clear inline transform → CSS animates to open position
+          sheet.style.transition = '';
           sheet.style.transform = '';
         }
       }
 
-      // Only drag from the handle or header, not the scrollable body
-      const sheetHeader = sheet.querySelector('.mobile-sheet-header');
       [dragHandle, sheetHeader].forEach(el => {
         el.addEventListener('touchstart', onSheetTouchStart, { passive: true });
+        el.addEventListener('touchmove', onSheetTouchMove, { passive: false });
+        el.addEventListener('touchend', onSheetTouchEnd, { passive: true });
+        el.addEventListener('touchcancel', onSheetTouchEnd, { passive: true });
       });
-      sheet.addEventListener('touchmove', onSheetTouchMove, { passive: true });
-      sheet.addEventListener('touchend', onSheetTouchEnd, { passive: true });
-      sheet.addEventListener('touchcancel', onSheetTouchEnd, { passive: true });
 
       // Wire up mobile action buttons
       const chapBtn = document.getElementById('mobileChaptersBtn');
