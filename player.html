@@ -580,6 +580,8 @@
         // ── Cover hiding ──
         let coverHidden = false;
         let coverTimer = null;
+        let srcRetried = false;
+
         function hideCover() {
           if (coverHidden) return;
           coverHidden = true;
@@ -587,27 +589,45 @@
           cover.classList.add('hidden');
         }
 
+        function reloadSrc() {
+          const src = player.getAttribute('src');
+          if (!src) return;
+          player.setAttribute('src', '');
+          setTimeout(() => {
+            player.setAttribute('src', src);
+            player.play().catch(() => {});
+          }, 120);
+        }
+
         // Primary: video actually started playing
-        // Not { once: true } so it survives a bfcache restore re-init
         player.addEventListener('playing', hideCover);
 
-        // Autoplay attempt; if mobile blocks it, reveal the player after a beat
+        // Autoplay attempt; if mobile blocks it, reveal after a beat
         player.addEventListener('can-play', () => {
-          player.play().catch(() => { coverTimer = setTimeout(hideCover, 1200); });
+          player.play().catch(() => {
+            clearTimeout(coverTimer);
+            coverTimer = setTimeout(hideCover, 1200);
+          });
         }, { once: true });
 
-        // Hard fallback — never leave user on spinner more than 10s
-        coverTimer = setTimeout(hideCover, 10000);
+        // At 3s: if still stuck (YouTube iframe stalled), reinit the src once
+        setTimeout(() => {
+          if (coverHidden || srcRetried) return;
+          srcRetried = true;
+          reloadSrc();
+        }, 3000);
+
+        // Hard fallback — never leave user on spinner more than 6s
+        coverTimer = setTimeout(hideCover, 6000);
 
         // bfcache: iOS/Android restore the page from memory on back/refresh.
-        // Show the cover again and reinit the src so the player reloads cleanly
-        // (no full page reload = no white flash).
         window.addEventListener('pageshow', (e) => {
           if (!e.persisted) return;
           coverHidden = false;
+          srcRetried = false;
           cover.classList.remove('hidden');
           clearTimeout(coverTimer);
-          coverTimer = setTimeout(hideCover, 10000);
+          coverTimer = setTimeout(hideCover, 6000);
           const src = player.getAttribute('src');
           if (src) {
             player.setAttribute('src', '');
