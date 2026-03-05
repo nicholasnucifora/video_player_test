@@ -292,15 +292,17 @@
       .custom-actions { bottom: 52px; right: auto; left: 12px; }
     }
 
-    /* ── Cinema mode (mobile only) — expand theatreRow to 100vh, content naturally shifts down ── */
+    /* ── Cinema mode (mobile only) — height is set entirely via JS inline style ── */
     @media (max-width: 768px) {
       body.cinema-mode { overflow: hidden; }
-      body.cinema-mode .theatre-row { height: 100vh; }
+      /* No height rule here — keeping it JS-only prevents the 100vh vs innerHeight mismatch teleport */
     }
 
     /* ── Mobile bottom sheet ── */
     .mobile-sheet-backdrop {
-      display: none; position: fixed; inset: 0;
+      /* Only covers the below-video area so the video remains interactive */
+      display: none; position: fixed; left: 0; right: 0; bottom: 0;
+      height: var(--sheet-max-h, calc(100vh - 56.25vw));
       background: rgba(0,0,0,0.55); z-index: 500;
     }
     .mobile-sheet-backdrop.open { display: block; }
@@ -1467,22 +1469,21 @@
       function getViewH()  { return window.innerHeight; }
       function getCurrentH() {
         const s = theatreRow.style.height;
-        return s ? parseFloat(s) : (cinemaMode ? getViewH() : getVideoH());
+        return s ? parseFloat(s) : getVideoH();
       }
 
       // ── Velocity-aware animation ──
-      // Uses ease-out so it continues at the finger's release speed, then decelerates naturally.
-      // Duration is computed from remaining distance ÷ velocity so a fast flick = fast snap.
-      function animateHeight(toH, velocityPxMs, onDone) {
-        const fromH = getCurrentH();
-        const dist = Math.abs(toH - fromH);
-        const speed = Math.max(Math.abs(velocityPxMs), 0.3); // px/ms floor
+      // clearAfter: if true, removes inline height on completion so CSS (56.25vw) takes over.
+      //             if false, keeps inline height — prevents 100vh vs innerHeight mismatch teleport.
+      function animateHeight(toH, velocityPxMs, clearAfter, onDone) {
+        const dist = Math.abs(toH - getCurrentH());
+        const speed = Math.max(Math.abs(velocityPxMs), 0.3);
         const dur = Math.max(80, Math.min(420, dist / speed));
         theatreRow.style.transition = `height ${dur}ms ease-out`;
         theatreRow.style.height = `${toH}px`;
         setTimeout(() => {
           theatreRow.style.transition = '';
-          theatreRow.style.height = '';
+          if (clearAfter) theatreRow.style.height = '';
           onDone?.();
         }, dur + 16);
         return dur;
@@ -1498,7 +1499,7 @@
       function enterCinema(vel) {
         cinemaMode = true;
         document.body.classList.add('cinema-mode');
-        const dur = animateHeight(getViewH(), Math.abs(vel));
+        const dur = animateHeight(getViewH(), Math.abs(vel), false); // keep inline — no teleport
         animateOpacity(belowPlayer, 0, dur);
         if (belowPlayer) belowPlayer.style.pointerEvents = 'none';
       }
@@ -1506,8 +1507,8 @@
       function exitCinema(vel) {
         cinemaMode = false;
         document.body.classList.remove('cinema-mode');
-        document.body.style.overflowY = 'hidden'; // block momentum scroll during transition
-        const dur = animateHeight(getVideoH(), Math.abs(vel), () => {
+        document.body.style.overflowY = 'hidden';
+        const dur = animateHeight(getVideoH(), Math.abs(vel), true, () => { // clear → CSS 56.25vw
           setTimeout(() => { document.body.style.overflowY = ''; }, 30);
         });
         animateOpacity(belowPlayer, 1, dur);
@@ -1515,13 +1516,13 @@
       }
 
       function snapToNormal(vel) {
-        const dur = animateHeight(getVideoH(), Math.max(Math.abs(vel), 0.5));
+        const dur = animateHeight(getVideoH(), Math.max(Math.abs(vel), 0.5), true); // clear → CSS
         animateOpacity(belowPlayer, 1, dur);
         if (belowPlayer) belowPlayer.style.pointerEvents = '';
       }
 
       function snapToCinema(vel) {
-        const dur = animateHeight(getViewH(), Math.max(Math.abs(vel), 0.5));
+        const dur = animateHeight(getViewH(), Math.max(Math.abs(vel), 0.5), false); // keep inline
         animateOpacity(belowPlayer, 0, dur);
       }
 
