@@ -274,8 +274,8 @@
     /* ── Responsive ── */
     @media (max-width: 768px) {
       .side-panel { display: none !important; }
-      /* Explicit height so CSS can transition smoothly into cinema mode */
-      .theatre-row { height: 56.25vw; max-height: none; flex-direction: column; transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+      /* Explicit height for cinema mode calculations — transition handled entirely in JS */
+      .theatre-row { height: 56.25vw; max-height: none; flex-direction: column; }
       .player-col { height: 100%; display: flex; align-items: center; }
       media-player { aspect-ratio: 16/9; height: auto; flex: none; width: 100%; }
       .mobile-chapters-section { display: none !important; }
@@ -308,7 +308,7 @@
       display: none; position: fixed; bottom: 0; left: 0; right: 0;
       background: #1c1c1c; border-radius: 16px 16px 0 0;
       border-top: 1px solid #333; z-index: 501;
-      max-height: calc(100vh - 56.25vw); flex-direction: column;
+      max-height: var(--sheet-max-h, calc(100vh - 56.25vw)); flex-direction: column;
       transform: translateY(100%);
       transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 -6px 32px rgba(0,0,0,0.5);
@@ -1435,8 +1435,8 @@
     }
 
     // ── Mobile cinema mode drag gesture ──
-    // Enter: drag DOWN on the title/below-player area (title is what you're "pushing away")
-    // Exit:  drag UP on the video (theatreRow) while in cinema mode
+    // Enter: drag DOWN on the title/channel area   → video expands to fill screen
+    // Exit:  drag UP   on the video (theatreRow)   → video shrinks back, content returns
     (function() {
       if (!isMobile()) return;
       const theatreRow = document.getElementById('theatreRow');
@@ -1444,56 +1444,108 @@
       let cinemaMode = false;
       let touchStartY = 0;
       let activeDrag = null; // 'enter' | 'exit' | null
-      const THRESHOLD = 240;
+      const THRESHOLD = 220;
 
-      function getVideoH() { return window.innerWidth * 0.5625; }
-      function getViewH() { return window.innerHeight; }
+      // ── Velocity tracking ──
+      // Record recent touch y-positions to compute release velocity
+      let recentTouches = [];
+      function recordTouch(y) {
+        recentTouches.push({ t: performance.now(), y });
+        if (recentTouches.length > 6) recentTouches.shift();
+      }
+      function getReleaseVelocity() {
+        // px/ms over the last ~80ms of movement
+        const cutoff = performance.now() - 80;
+        const recent = recentTouches.filter(p => p.t >= cutoff);
+        if (recent.length < 2) return 0;
+        const dt = recent[recent.length - 1].t - recent[0].t;
+        return dt > 0 ? (recent[recent.length - 1].y - recent[0].y) / dt : 0;
+      }
 
-      // Animate theatreRow height + below-player opacity together during drag
+      // ── Height helpers ──
+      function getVideoH() { return theatreRow.getBoundingClientRect().width * 0.5625; }
+      function getViewH()  { return window.innerHeight; }
+      function getCurrentH() {
+        const s = theatreRow.style.height;
+        return s ? parseFloat(s) : (cinemaMode ? getViewH() : getVideoH());
+      }
+
+      // ── Velocity-aware animation ──
+      // Uses ease-out so it continues at the finger's release speed, then decelerates naturally.
+      // Duration is computed from remaining distance ÷ velocity so a fast flick = fast snap.
+      function animateHeight(toH, velocityPxMs, onDone) {
+        const fromH = getCurrentH();
+        const dist = Math.abs(toH - fromH);
+        const speed = Math.max(Math.abs(velocityPxMs), 0.3); // px/ms floor
+        const dur = Math.max(80, Math.min(420, dist / speed));
+        theatreRow.style.transition = `height ${dur}ms ease-out`;
+        theatreRow.style.height = `${toH}px`;
+        setTimeout(() => {
+          theatreRow.style.transition = '';
+          theatreRow.style.height = '';
+          onDone?.();
+        }, dur + 16);
+        return dur;
+      }
+
+      function animateOpacity(el, to, dur) {
+        if (!el) return;
+        el.style.transition = `opacity ${dur}ms ease-out`;
+        el.style.opacity = String(to);
+      }
+
+      // ── State transitions ──
+      function enterCinema(vel) {
+        cinemaMode = true;
+        document.body.classList.add('cinema-mode');
+        const dur = animateHeight(getViewH(), Math.abs(vel));
+        animateOpacity(belowPlayer, 0, dur);
+        if (belowPlayer) belowPlayer.style.pointerEvents = 'none';
+      }
+
+      function exitCinema(vel) {
+        cinemaMode = false;
+        document.body.classList.remove('cinema-mode');
+        document.body.style.overflowY = 'hidden'; // block momentum scroll during transition
+        const dur = animateHeight(getVideoH(), Math.abs(vel), () => {
+          setTimeout(() => { document.body.style.overflowY = ''; }, 30);
+        });
+        animateOpacity(belowPlayer, 1, dur);
+        if (belowPlayer) belowPlayer.style.pointerEvents = '';
+      }
+
+      function snapToNormal(vel) {
+        const dur = animateHeight(getVideoH(), Math.max(Math.abs(vel), 0.5));
+        animateOpacity(belowPlayer, 1, dur);
+        if (belowPlayer) belowPlayer.style.pointerEvents = '';
+      }
+
+      function snapToCinema(vel) {
+        const dur = animateHeight(getViewH(), Math.max(Math.abs(vel), 0.5));
+        animateOpacity(belowPlayer, 0, dur);
+      }
+
+      // ── Live drag: height tracks finger exactly ──
       function applyProgress(p) {
         const videoH = getVideoH(), viewH = getViewH();
         theatreRow.style.height = `${videoH + (viewH - videoH) * p}px`;
         if (belowPlayer) {
+          belowPlayer.style.transition = 'none';
           belowPlayer.style.opacity = String(Math.max(0, 1 - p * 1.4));
           belowPlayer.style.pointerEvents = p > 0.05 ? 'none' : '';
         }
       }
 
-      function enterCinema() {
-        cinemaMode = true;
-        theatreRow.style.height = ''; // CSS transition → 100vh
-        document.body.classList.add('cinema-mode');
-        if (belowPlayer) { belowPlayer.style.transition = 'opacity 0.5s ease'; belowPlayer.style.opacity = '0'; belowPlayer.style.pointerEvents = 'none'; }
-      }
-      function exitCinema() {
-        cinemaMode = false;
-        theatreRow.style.height = ''; // CSS transition → 56.25vw
-        document.body.classList.remove('cinema-mode');
-        // Keep scroll locked during the transition so swipe momentum doesn't fling the page
-        document.body.style.overflowY = 'hidden';
-        setTimeout(() => { document.body.style.overflowY = ''; }, 520);
-        if (belowPlayer) { belowPlayer.style.transition = 'opacity 0.5s ease'; belowPlayer.style.opacity = '1'; belowPlayer.style.pointerEvents = ''; }
-      }
-      function snapNormal() {
-        theatreRow.style.height = '';
-        if (belowPlayer) { belowPlayer.style.transition = 'opacity 0.3s ease'; belowPlayer.style.opacity = '1'; belowPlayer.style.pointerEvents = ''; }
-      }
-      function snapCinema() {
-        theatreRow.style.height = '';
-        if (belowPlayer) { belowPlayer.style.transition = 'opacity 0.3s ease'; belowPlayer.style.opacity = '0'; }
-      }
-
-      // ── ENTER: drag the title area downward ──
+      // ── ENTER: drag the title/channel area downward ──
       belowPlayer.addEventListener('touchstart', (e) => {
         if (cinemaMode) return;
         if (e.target.closest('button, a, input, .description-box')) return;
-        // Only the top portion of below-player (title/channel area) triggers cinema drag
         const bpTop = belowPlayer.getBoundingClientRect().top;
-        if (e.touches[0].clientY - bpTop > 130) return;
+        if (e.touches[0].clientY - bpTop > 130) return; // only top 130px
         touchStartY = e.touches[0].clientY;
         activeDrag = 'enter';
+        recentTouches = [];
         theatreRow.style.transition = 'none';
-        if (belowPlayer) belowPlayer.style.transition = 'none';
       }, { passive: true });
 
       belowPlayer.addEventListener('touchmove', (e) => {
@@ -1501,6 +1553,7 @@
         const dy = e.touches[0].clientY - touchStartY;
         if (dy > 0) {
           e.preventDefault();
+          recordTouch(e.touches[0].clientY);
           applyProgress(Math.min(dy / THRESHOLD, 1));
         }
       }, { passive: false });
@@ -1508,10 +1561,11 @@
       function onBelowEnd(e) {
         if (activeDrag !== 'enter') return;
         activeDrag = null;
-        theatreRow.style.transition = '';
+        const vel = getReleaseVelocity(); // positive = downward
         const dy = (e.changedTouches?.[0]?.clientY ?? touchStartY) - touchStartY;
-        if (dy > THRESHOLD * 0.45) enterCinema();
-        else snapNormal();
+        // Commit if dragged far enough OR flicked fast enough
+        if (dy > THRESHOLD * 0.35 || vel > 0.8) enterCinema(vel);
+        else snapToNormal(vel);
       }
       belowPlayer.addEventListener('touchend', onBelowEnd, { passive: true });
       belowPlayer.addEventListener('touchcancel', onBelowEnd, { passive: true });
@@ -1522,8 +1576,8 @@
         if (e.target.closest('button, [role="slider"], media-controls, .custom-actions')) return;
         touchStartY = e.touches[0].clientY;
         activeDrag = 'exit';
+        recentTouches = [];
         theatreRow.style.transition = 'none';
-        if (belowPlayer) belowPlayer.style.transition = 'none';
       }, { passive: true });
 
       theatreRow.addEventListener('touchmove', (e) => {
@@ -1531,20 +1585,31 @@
         const dy = e.touches[0].clientY - touchStartY;
         if (dy < 0) {
           e.preventDefault();
-          applyProgress(Math.max(0, 1 - (-dy / THRESHOLD)));
+          recordTouch(e.touches[0].clientY);
+          applyProgress(Math.max(0, 1 + dy / THRESHOLD));
         }
       }, { passive: false });
 
       function onTheatreEnd(e) {
         if (activeDrag !== 'exit') return;
         activeDrag = null;
-        theatreRow.style.transition = '';
+        const vel = getReleaseVelocity(); // negative = upward
         const dy = (e.changedTouches?.[0]?.clientY ?? touchStartY) - touchStartY;
-        if (dy < -(THRESHOLD * 0.45)) exitCinema();
-        else snapCinema();
+        if (dy < -(THRESHOLD * 0.35) || vel < -0.8) exitCinema(vel);
+        else snapToCinema(vel);
       }
       theatreRow.addEventListener('touchend', onTheatreEnd, { passive: true });
       theatreRow.addEventListener('touchcancel', onTheatreEnd, { passive: true });
+
+      // ── Keep sheet max-height flush with video bottom ──
+      function updateSheetMaxH() {
+        const row = document.getElementById('theatreRow');
+        if (!row || !isMobile()) return;
+        const avail = window.innerHeight - row.getBoundingClientRect().bottom;
+        document.documentElement.style.setProperty('--sheet-max-h', Math.max(180, avail) + 'px');
+      }
+      window.addEventListener('resize', updateSheetMaxH);
+      requestAnimationFrame(() => requestAnimationFrame(updateSheetMaxH));
     })();
 
     // ── Mobile bottom sheet ──
