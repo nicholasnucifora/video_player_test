@@ -577,48 +577,44 @@
         const player = document.querySelector('media-player');
         const cover = document.getElementById('playerCover');
 
-        // ── Robust cover hiding ──
-        // Multiple independent paths all converge on hideCover() so a single
-        // stalled event can't leave the user stuck on the spinner.
+        // ── Cover hiding ──
         let coverHidden = false;
+        let coverTimer = null;
         function hideCover() {
           if (coverHidden) return;
           coverHidden = true;
+          clearTimeout(coverTimer);
           cover.classList.add('hidden');
         }
 
         // Primary: video actually started playing
-        player.addEventListener('playing', hideCover, { once: true });
+        // Not { once: true } so it survives a bfcache restore re-init
+        player.addEventListener('playing', hideCover);
 
-        // Autoplay attempt — if rejected (mobile autoplay policy), hide cover
-        // after a short beat so the user sees the loaded player and can tap
+        // Autoplay attempt; if mobile blocks it, reveal the player after a beat
         player.addEventListener('can-play', () => {
-          player.play().catch(() => setTimeout(hideCover, 600));
+          player.play().catch(() => { coverTimer = setTimeout(hideCover, 1200); });
         }, { once: true });
 
-        // Video data loaded but nothing started (e.g. preload only) — hide after delay
-        player.addEventListener('loaded-metadata', () => {
-          setTimeout(hideCover, 2500);
-        }, { once: true });
+        // Hard fallback — never leave user on spinner more than 10s
+        coverTimer = setTimeout(hideCover, 10000);
 
-        // Player error — don't leave user staring at spinner, show the player
-        player.addEventListener('error', () => setTimeout(hideCover, 800), { once: true });
-
-        // Hard fallback: 9s max no matter what
-        const coverTimer = setTimeout(hideCover, 9000);
-        player.addEventListener('playing', () => clearTimeout(coverTimer), { once: true });
-
-        // bfcache: iOS/Android can restore the page from memory on refresh,
-        // re-running no JS. Force a real reload so the player reinitialises cleanly.
+        // bfcache: iOS/Android restore the page from memory on back/refresh.
+        // Show the cover again and reinit the src so the player reloads cleanly
+        // (no full page reload = no white flash).
         window.addEventListener('pageshow', (e) => {
-          if (e.persisted) window.location.reload();
-        });
-
-        // Visibility: phone goes to background mid-load, YouTube API stalls.
-        // When user returns, retry play and hide cover if still showing.
-        document.addEventListener('visibilitychange', () => {
-          if (!document.hidden && !coverHidden) {
-            player.play().catch(() => setTimeout(hideCover, 800));
+          if (!e.persisted) return;
+          coverHidden = false;
+          cover.classList.remove('hidden');
+          clearTimeout(coverTimer);
+          coverTimer = setTimeout(hideCover, 10000);
+          const src = player.getAttribute('src');
+          if (src) {
+            player.setAttribute('src', '');
+            setTimeout(() => {
+              player.setAttribute('src', src);
+              player.play().catch(() => { coverTimer = setTimeout(hideCover, 1200); });
+            }, 80);
           }
         });
         const wrapper = document.getElementById('fullscreenWrapper');
