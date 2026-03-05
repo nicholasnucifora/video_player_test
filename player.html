@@ -577,13 +577,50 @@
         const player = document.querySelector('media-player');
         const cover = document.getElementById('playerCover');
 
+        // ── Robust cover hiding ──
+        // Multiple independent paths all converge on hideCover() so a single
+        // stalled event can't leave the user stuck on the spinner.
+        let coverHidden = false;
+        function hideCover() {
+          if (coverHidden) return;
+          coverHidden = true;
+          cover.classList.add('hidden');
+        }
+
+        // Primary: video actually started playing
+        player.addEventListener('playing', hideCover, { once: true });
+
+        // Autoplay attempt — if rejected (mobile autoplay policy), hide cover
+        // after a short beat so the user sees the loaded player and can tap
         player.addEventListener('can-play', () => {
-          player.play().catch(() => {});
+          player.play().catch(() => setTimeout(hideCover, 600));
         }, { once: true });
 
-        player.addEventListener('playing', () => {
-          cover.classList.add('hidden');
+        // Video data loaded but nothing started (e.g. preload only) — hide after delay
+        player.addEventListener('loaded-metadata', () => {
+          setTimeout(hideCover, 2500);
         }, { once: true });
+
+        // Player error — don't leave user staring at spinner, show the player
+        player.addEventListener('error', () => setTimeout(hideCover, 800), { once: true });
+
+        // Hard fallback: 9s max no matter what
+        const coverTimer = setTimeout(hideCover, 9000);
+        player.addEventListener('playing', () => clearTimeout(coverTimer), { once: true });
+
+        // bfcache: iOS/Android can restore the page from memory on refresh,
+        // re-running no JS. Force a real reload so the player reinitialises cleanly.
+        window.addEventListener('pageshow', (e) => {
+          if (e.persisted) window.location.reload();
+        });
+
+        // Visibility: phone goes to background mid-load, YouTube API stalls.
+        // When user returns, retry play and hide cover if still showing.
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden && !coverHidden) {
+            player.play().catch(() => setTimeout(hideCover, 800));
+          }
+        });
         const wrapper = document.getElementById('fullscreenWrapper');
         const flash = document.getElementById('playPauseFlash');
         const mobileBtn = document.getElementById('mobilePlayBtn');
