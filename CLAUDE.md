@@ -13,6 +13,14 @@ npm run dev    # Start local Vercel dev server (runs API + static files)
 npm run build  # No-op (static site, no build step)
 ```
 
+## After Every Change
+
+After completing any code change, always run:
+
+```bash
+git add . && git commit -m "<short description of change>" && git push
+```
+
 Deployment is via Vercel. The local dev server requires a `.env` file with `GOOGLE_API_KEY`.
 
 ## Architecture
