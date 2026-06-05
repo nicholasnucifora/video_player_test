@@ -966,19 +966,15 @@
       aspect-ratio: auto;
     }
 
-    main:fullscreen.fullscreen-peek .app-toolbar {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 70;
-      transform: translateY(0);
-      transition: transform 0.42s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 -14px 36px rgba(0, 0, 0, 0.45);
+    main:fullscreen.fullscreen-peek .player-frame {
+      height: calc(100vh - var(--fullscreen-toolbar-height, 66px));
+      min-height: calc(100vh - var(--fullscreen-toolbar-height, 66px));
     }
 
-    main:fullscreen.fullscreen-peek.toolbar-hiding .app-toolbar {
-      transform: translateY(calc(100% + 18px));
+    main:fullscreen.fullscreen-peek.toolbar-hiding .player-frame {
+      height: 100vh;
+      min-height: 100vh;
+      transition: height 0.42s cubic-bezier(0.4, 0, 0.2, 1), min-height 0.42s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     main:fullscreen .mobile-chapter-strip {
@@ -1329,10 +1325,14 @@
       fullscreenPeekTimers.forEach(timer => clearTimeout(timer));
       fullscreenPeekTimers = [];
       pageShell.classList.remove('fullscreen-peek', 'toolbar-hiding');
+      pageShell.style.removeProperty('--fullscreen-toolbar-height');
     }
 
     function startFullscreenToolbarPeek() {
       clearFullscreenToolbarPeek();
+      const toolbar = document.querySelector('.app-toolbar');
+      const toolbarHeight = Math.ceil(toolbar?.getBoundingClientRect().height || 66);
+      pageShell.style.setProperty('--fullscreen-toolbar-height', `${toolbarHeight}px`);
       pageShell.classList.add('fullscreen-peek');
       requestAnimationFrame(() => {
         fullscreenPeekTimers.push(setTimeout(() => {
