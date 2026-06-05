@@ -935,15 +935,16 @@
     }
 
     main:fullscreen .watch-shell {
-      min-height: 100vh;
-      align-items: stretch;
+      display: block;
+      min-height: auto;
       border-bottom: 1px solid var(--line);
     }
 
     main:fullscreen .watch-grid {
+      display: block;
       width: 100%;
       max-width: none;
-      min-height: 100vh;
+      min-height: 0;
     }
 
     main:fullscreen .watch-grid.panel-open {
@@ -955,13 +956,29 @@
     }
 
     main:fullscreen .video-column {
+      display: block;
       min-height: 0;
     }
 
     main:fullscreen .player-frame {
-      flex: 1;
-      min-height: 0;
+      height: 100vh;
+      min-height: 100vh;
       aspect-ratio: auto;
+    }
+
+    main:fullscreen.fullscreen-peek .app-toolbar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 70;
+      transform: translateY(0);
+      transition: transform 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 -14px 36px rgba(0, 0, 0, 0.45);
+    }
+
+    main:fullscreen.fullscreen-peek.toolbar-hiding .app-toolbar {
+      transform: translateY(calc(100% + 18px));
     }
 
     main:fullscreen .mobile-chapter-strip {
@@ -1163,6 +1180,7 @@
     const fullscreenIcon = document.getElementById('fullscreenIcon');
     const enterFullscreenIcon = '<path d="M5 5h6v2H7v4H5V5zm12 2h-4V5h6v6h-2V7zM7 17h4v2H5v-6h2v4zm10-4h2v6h-6v-2h4v-4z"/>';
     const exitFullscreenIcon = '<path d="M9 3h2v8H3V9h4.6L3.3 4.7l1.4-1.4L9 7.6V3zm6 0v4.6l4.3-4.3 1.4 1.4L16.4 9H21v2h-8V3h2zM3 13h8v8H9v-4.6l-4.3 4.3-1.4-1.4L7.6 15H3v-2zm18 0v2h-4.6l4.3 4.3-1.4 1.4-4.3-4.3V21h-2v-8h8z"/>';
+    let fullscreenPeekTimers = [];
 
     setTimeout(() => {
       if (playerReady) return;
@@ -1307,6 +1325,25 @@
       }
     }
 
+    function clearFullscreenToolbarPeek() {
+      fullscreenPeekTimers.forEach(timer => clearTimeout(timer));
+      fullscreenPeekTimers = [];
+      pageShell.classList.remove('fullscreen-peek', 'toolbar-hiding');
+    }
+
+    function startFullscreenToolbarPeek() {
+      clearFullscreenToolbarPeek();
+      pageShell.classList.add('fullscreen-peek');
+      requestAnimationFrame(() => {
+        fullscreenPeekTimers.push(setTimeout(() => {
+          pageShell.classList.add('toolbar-hiding');
+        }, 1400));
+        fullscreenPeekTimers.push(setTimeout(() => {
+          pageShell.classList.remove('fullscreen-peek', 'toolbar-hiding');
+        }, 1900));
+      });
+    }
+
     fullscreenBtn.addEventListener('click', toggleAppFullscreen);
 
     document.addEventListener('keydown', (event) => {
@@ -1319,11 +1356,14 @@
 
     document.addEventListener('fullscreenchange', () => {
       if (document.fullscreenElement) {
+        closePanel();
+        startFullscreenToolbarPeek();
         fullscreenIcon.innerHTML = exitFullscreenIcon;
         fullscreenBtn.classList.add('active');
         fullscreenBtn.title = 'Exit fullscreen';
         fullscreenBtn.setAttribute('aria-label', 'Exit fullscreen');
       } else {
+        clearFullscreenToolbarPeek();
         fullscreenIcon.innerHTML = enterFullscreenIcon;
         fullscreenBtn.classList.remove('active');
         fullscreenBtn.title = 'Fullscreen layout';
