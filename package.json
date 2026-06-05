@@ -1,5 +1,5 @@
 {
-  "name": "vidstack-playground",
+  "name": "youtube-player-playground",
   "private": true,
   "scripts": {
     "dev": "vercel dev",
